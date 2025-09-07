@@ -230,8 +230,12 @@ export default function Stories() {
                     <button
                       className="px-3 py-1 rounded-lg bg-blue-600 text-white"
                       onClick={() => player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })}
+                      aria-label="נגן"
                     >
-                      נגן
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 inline" aria-hidden="true">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      <span className="sr-only">נגן</span>
                     </button>
                     {/* progress badge */}
                     {(() => {

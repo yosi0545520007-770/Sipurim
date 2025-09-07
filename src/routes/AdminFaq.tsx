@@ -156,12 +156,11 @@ export default function AdminFaq() {
 
       {/* מודאל יצירה/עריכה */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4" onClick={() => setModalOpen(false)}>
+        <div className="fixed z-50 right-4 top-20 p-0">
           <div
             className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6"
             onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
+            // בוטלה נעילת פוקוס: הוסר role="dialog" ו-aria-modal
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">{editingId ? 'עריכת שאלה' : 'שאלה חדשה'}</h2>

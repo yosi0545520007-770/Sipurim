@@ -218,6 +218,18 @@ export default function StoriesAdmin() {
   }
   useEffect(() => { loadAll() }, [])
 
+  // Close any open dialogs on ESC (helps avoid accidental focus lock)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setModalOpen(false)
+        setPickerOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const seriesMap = useMemo(() => Object.fromEntries(seriesList.map(s => [s.id, s.name])), [seriesList])
   const visibleList = useMemo(() => {
     let arr = list
@@ -677,7 +689,7 @@ export default function StoriesAdmin() {
                 calendarStartDay={0}
                 isClearable={false}
                 showPopperArrow={false}
-                renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => {
+                renderCustomHeader={({ date, decreaseMonth, increaseMonth, changeYear, changeMonth }) => {
                   const g = date as Date
                   const year = g.getFullYear()
                   const month = g.getMonth()
@@ -690,6 +702,9 @@ export default function StoriesAdmin() {
                     ? `${startHe.month} ${startHe.year}`
                     : `${startHe.month} ${startHe.year} – ${endHe.month} ${endHe.year}`
 
+                  const months = Array.from({ length: 12 }, (_, i) => ({ idx: i, label: new Date(2020, i, 1).toLocaleDateString('he-IL', { month: 'long' }) }))
+                  const years: number[] = []; for (let y = year - 120; y <= year + 20; y++) years.push(y)
+
                   return (
                     <div className="px-2 py-1" dir="rtl">
                       <div className="flex items-center justify-between">
@@ -698,6 +713,14 @@ export default function StoriesAdmin() {
                         <button type="button" onClick={increaseMonth} className="px-2 text-lg">›</button>
                       </div>
                       <div className="text-sm text-gray-600 text-center mt-1">{hebLabel}</div>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <select className="border rounded px-2 py-1 bg-white" value={month} onChange={(e)=> changeMonth(Number(e.target.value))}>
+                          {months.map(m => <option key={m.idx} value={m.idx}>{m.label}</option>)}
+                        </select>
+                        <select className="border rounded px-2 py-1 bg-white" value={year} onChange={(e)=> changeYear(Number(e.target.value))}>
+                          {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                      </div>
                     </div>
                   )
                 }}

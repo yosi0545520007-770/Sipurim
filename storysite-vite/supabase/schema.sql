@@ -77,3 +77,11 @@ create policy if not exists "anyone can create contact" on public.contact_messag
 create policy if not exists "staff read contacts" on public.contact_messages for select using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
 );
+
+-- Memorials policies
+create policy if not exists "public read memorials" on public.memorials for select using ( true );
+create policy if not exists "staff write memorials" on public.memorials for all using (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+) with check (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+);

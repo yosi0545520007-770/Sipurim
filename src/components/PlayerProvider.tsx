@@ -105,6 +105,43 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       controls.appendChild(toggleBtn)
       controls.appendChild(nextBtn)
 
+      // Replace button text with icons-only and accessible labels
+      const setPrevIcon = () => {
+        prevBtn.textContent = ''
+        prevBtn.setAttribute('aria-label', 'הקודם')
+        prevBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true">'
+          + '<path d="M15 5v14l-11-7z" />'
+          + '</svg>'
+          + '<span class="sr-only">הקודם</span>'
+      }
+      const setNextIcon = () => {
+        nextBtn.textContent = ''
+        nextBtn.setAttribute('aria-label', 'הבא')
+        nextBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true">'
+          + '<path d="M8 5v14l11-7z" />'
+          + '</svg>'
+          + '<span class="sr-only">הבא</span>'
+      }
+      const setToggleIcon = () => {
+        toggleBtn.textContent = ''
+        if (!el.paused) {
+          toggleBtn.setAttribute('aria-label', 'השהה')
+          toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true">'
+            + '<path d="M6 5h4v14H6zM14 5h4v14h-4z" />'
+            + '</svg>'
+            + '<span class="sr-only">השהה</span>'
+        } else {
+          toggleBtn.setAttribute('aria-label', 'נגן')
+          toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true">'
+            + '<path d="M8 5v14l11-7z" />'
+            + '</svg>'
+            + '<span class="sr-only">נגן</span>'
+        }
+      }
+      setPrevIcon(); setNextIcon(); setToggleIcon()
+      el.addEventListener('play', setToggleIcon)
+      el.addEventListener('pause', setToggleIcon)
+
       wrap.appendChild(title)
       wrap.appendChild(controls)
       wrap.appendChild(el)

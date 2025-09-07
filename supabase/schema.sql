@@ -70,6 +70,13 @@ alter table public.faq enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.tags enable row level security;
 alter table public.story_tags enable row level security;
+-- Memorials policies
+create policy if not exists "public read memorials" on public.memorials for select using ( true );
+create policy if not exists "staff write memorials" on public.memorials for all using (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+) with check (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+);
 create policy if not exists "read published stories" on public.stories for select using ( coalesce(publish_at <= now(), true) );
 create policy if not exists "edit stories by staff" on public.stories for all using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))

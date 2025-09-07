@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import './index.css'
@@ -11,19 +11,19 @@ import Series from '@/routes/Series'
 import Ilui from '@/routes/Ilui'
 import Contact from '@/routes/Contact'
 import Drive from '@/routes/Drive'
-import DevGate from '@/components/DevGate'   // ⬅️ הוסף
+import DevGate from '@/components/DevGate'
 
-function NotFound() { /* ... כמו שהיה ... */ }
+function NotFound() { /* ... ׳›׳׳• ׳©׳”׳™׳” ... */ }
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Root />,
-    errorElement: <NotFound />,
+    errorElement: <div />,
     children: [
       { index: true, element: <Home /> },
 
-      // ⬇️ עוטפים את /admin ב-Gate
+      // ג¬‡ן¸ ׳¢׳•׳˜׳₪׳™׳ ׳׳× /admin ׳‘-Gate
       { path: 'admin', element: <DevGate><StoriesAdmin /></DevGate> },
 
       { path: 'dashboard/stories', element: <Navigate to="/admin" replace /> },
@@ -33,10 +33,12 @@ const router = createBrowserRouter([
       { path: 'series', element: <Series /> },
       { path: 'ilui', element: <Ilui /> },
       { path: 'contact', element: <Contact /> },
-      { path: '*', element: <NotFound /> },
+      { path: '*', element: <div /> },
     ],
   },
-])
+], {
+  future: { v7_startTransition: true },
+})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import PushPrompt from '@/components/PushPrompt'
 import { PlayerProvider } from '@/components/PlayerProvider'
 import { NotifyProvider } from '@/components/Notify'
+import { EditModeProvider, EditModeToggle } from '@/components/EditMode'
 
 export default function Root() {
   const [scrolled, setScrolled] = useState(false)
@@ -18,6 +19,7 @@ export default function Root() {
   return (
     <PlayerProvider>
     <NotifyProvider>
+    <EditModeProvider>
     <div dir="rtl" className="min-h-screen flex flex-col">
       <div className={`sticky top-0 z-50 transition-shadow bg-white ${scrolled ? 'shadow-md' : ''}`}>
         <Header />
@@ -34,11 +36,14 @@ export default function Root() {
 
       <footer className="border-t py-8 text-center text-sm text-gray-500">
         © {new Date().getFullYear()} ספריית הסיפורים
+        יחי אדונינו מורינו ורבינו מלך המשיח לעולם ועד
       </footer>
 
       {/* ✅ כפתור פוש צף בכל הדפים */}
       <PushButton />
+      <EditModeToggle />
     </div>
+    </EditModeProvider>
     </NotifyProvider>
     </PlayerProvider>
   )
