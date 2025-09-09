@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { markHeard } from '@/lib/heard'
 
 type Track = { id: string; title: string; audio_url: string }
 
@@ -54,14 +55,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       el.oncontextmenu = (e) => { e.preventDefault() }
       el.addEventListener('play', () => setPlaying(true))
       el.addEventListener('pause', () => setPlaying(false))
+      const marked: Record<string, 1> = {}
       el.addEventListener('timeupdate', () => {
         const c = queue[index]
         if (!c) return
         const pos = el.currentTime || 0
         const dur = el.duration || 0
         setProgressMap(prev => ({ ...prev, [c.id]: { pos, dur, updatedAt: Date.now() } }))
+        // Mark as heard when 80% consumed
+        if (dur > 0 && pos / dur >= 0.8 && !marked[c.id]) {
+          marked[c.id] = 1
+          markHeard(c.id)
+        }
       })
       el.addEventListener('ended', () => {
+        const c = queue[index]
+        if (c && !marked[c.id]) { marked[c.id] = 1; markHeard(c.id) }
         // advance locally to avoid referencing callbacks defined later
         setIndex(i => (queue.length ? (i + 1) % queue.length : 0))
       })
@@ -76,7 +85,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       bar = document.createElement('div')
       bar.id = 'mini-player-bar'
       bar.dir = 'rtl'
-      bar.className = 'fixed bottom-0 left-0 right-0 z-50 bg-white border-t'
+      bar.className = 'fixed bottom-0 left-0 right-0 z-50 bg-gray-100 border-t'
       document.body.appendChild(bar)
     }
     const el = ensureAudio()

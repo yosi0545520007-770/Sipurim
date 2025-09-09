@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/components/PlayerProvider'
+import { useHeard } from '@/lib/heard'
 
 type Track = {
   id: string
@@ -32,11 +33,13 @@ function guessAudioMime(url: string): string {
 
 export default function Drive() {
   const player = usePlayer()
+  const { isHeard } = useHeard()
   const [tracks, setTracks] = useState<Track[]>([])
   const [order, setOrder] = useState<Track[]>([])
   const [current, setCurrent] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   const [err, setErr] = useState<string | null>(null)
+  const [skipHeard, setSkipHeard] = useState<boolean>(true)
 
   useEffect(() => {
     ;(async () => {
@@ -85,9 +88,13 @@ export default function Drive() {
   function reshuffle() { const o = buildOrder(tracks); setOrder(o); setCurrent(0); player.pause() }
 
   const playing = player.playing
+  
+  // Rebuild order when toggling skipHeard
+  useEffect(() => { setOrder(buildOrder(tracks)); setCurrent(0) }, [skipHeard])
 
   // Determine if a track is completed by this user based on saved progress
   function isCompleted(t: Track): boolean {
+    if (skipHeard && isHeard(t.id)) return true
     const pg = player.getProgress(t.id)
     if (!pg) return false
     const dur = pg.dur || 0
@@ -207,6 +214,11 @@ export default function Drive() {
                   <path d="M17.65 6.35A8 8 0 0012 4a8 8 0 100 16 8 8 0 007.9-7H18a6 6 0 11-6-6c1.66 0 3.14.66 4.24 1.76L14 10h6V4l-2.35 2.35z" />
                 </svg>
               </button>
+              {/* Skip heard toggle */}
+              <label className="mt-1 ml-2 inline-flex items-center gap-1 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={skipHeard} onChange={(e) => setSkipHeard(e.target.checked)} />
+                דלג על "שמעתי"
+              </label>
             </div>
           </div>
           <div className="flex flex-col justify-center">

@@ -11,6 +11,9 @@ alter table if exists public.faq        disable row level security;
 alter table if exists public.contact_messages disable row level security;
 alter table if exists public.tags       disable row level security;
 alter table if exists public.story_tags disable row level security;
+alter table if exists public.story_listens disable row level security;
+alter table if exists public.categories disable row level security;
+alter table if exists public.settings disable row level security;
 
 -- הרשאות מלאות ל-anon/authenticated על schema public
 grant usage on schema public to anon, authenticated;

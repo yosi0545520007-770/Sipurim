@@ -1,4 +1,4 @@
--- Supabase schema & RLS (same as בגרסת Next)
+﻿-- Supabase schema & RLS (same as ׳‘׳’׳¨׳¡׳× Next)
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   full_name text,
@@ -12,6 +12,20 @@ create table if not exists public.series (
   cover_url text,
   created_at timestamptz default now()
 );
+
+-- Simple categories for stories
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz default now()
+);
+
+-- Key-value settings table
+create table if not exists public.settings (
+  key text primary key,
+  value text,
+  updated_at timestamptz default now()
+);
 create table if not exists public.stories (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -22,6 +36,7 @@ create table if not exists public.stories (
   body text,
   is_series boolean default false,
   series_id uuid references public.series(id),
+  category_id uuid references public.categories(id),
   publish_at timestamptz,
   created_by uuid references public.profiles(id),
   created_at timestamptz default now(),
@@ -54,6 +69,14 @@ create table if not exists public.story_tags (
   tag_id uuid not null references public.tags(id) on delete cascade,
   primary key (story_id, tag_id)
 );
+
+-- Track listens per user
+create table if not exists public.story_listens (
+  user_id uuid not null references auth.users on delete cascade,
+  story_id uuid not null references public.stories(id) on delete cascade,
+  listened_at timestamptz default now(),
+  primary key (user_id, story_id)
+);
 create table if not exists public.contact_messages (
   id bigint generated always as identity primary key,
   name text not null,
@@ -70,6 +93,9 @@ alter table public.faq enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.tags enable row level security;
 alter table public.story_tags enable row level security;
+alter table public.story_listens enable row level security;
+alter table public.categories enable row level security;
+alter table public.settings enable row level security;
 -- Memorials policies
 create policy if not exists "public read memorials" on public.memorials for select using ( true );
 create policy if not exists "staff write memorials" on public.memorials for all using (
@@ -112,3 +138,25 @@ create policy if not exists "staff write story_tags" on public.story_tags for al
 ) with check (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
 );
+
+-- Listens: each user can read/insert/delete their own
+create policy if not exists "own read listens" on public.story_listens for select using ( auth.uid() = user_id );
+create policy if not exists "own write listens" on public.story_listens for insert with check ( auth.uid() = user_id );
+create policy if not exists "own delete listens" on public.story_listens for delete using ( auth.uid() = user_id );
+
+-- Categories policies
+create policy if not exists "public read categories" on public.categories for select using ( true );
+create policy if not exists "staff write categories" on public.categories for all using (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+) with check (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+);
+
+-- Settings policies
+create policy if not exists "public read settings" on public.settings for select using ( true );
+create policy if not exists "staff write settings" on public.settings for all using (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+) with check (
+  exists(select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin','editor'))
+);
+

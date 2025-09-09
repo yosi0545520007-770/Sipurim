@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { HDate } from '@hebcal/core'
 import { Search } from 'lucide-react'
 import { usePlayer } from '@/components/PlayerProvider'
+import { useHeard } from '@/lib/heard'
 
 type Story = {
   id: string
@@ -31,6 +32,7 @@ function getTodayHebrew(): string {
 /* ---------- Component ---------- */
 export default function Home() {
   const player = usePlayer()
+  const { isHeard } = useHeard()
   // Daily story
   const [story, setStory] = useState<Story | null>(null)
   // Search
@@ -163,7 +165,7 @@ export default function Home() {
 
   return (
     <section className="p-6 max-w-6xl mx-auto" dir="rtl">
-      <h1 className="text-2xl font-bold mb-6">הסיפור היומי</h1>
+
 
       {err && <div className="bg-red-50 text-red-700 p-3 rounded mb-4">{err}</div>}
       {loading && <div className="text-gray-500">טוען…</div>}
@@ -173,26 +175,34 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-6 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
           {/* ימין: תמונה + אודיו + וואטסאפ + פוש */}
           <div className="space-y-3">
-            {story.image_url ? (
-              <img src={story.image_url} alt={story.title} className="w-full rounded-lg object-cover" />
-            ) : (
-              <div className="w-full h-48 bg-gray-100 grid place-items-center text-gray-400">אין תמונה</div>
-            )}
-
-            {story.audio_url && (
-              <div>
-                <button
-                  className="mt-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
-                  onClick={() => player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })}
-                  aria-label="נגן"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 inline" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  <span className="sr-only">נגן</span>
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              {story.image_url ? (
+                <img src={story.image_url} alt={story.title} className="w-full rounded-lg object-cover" />
+              ) : (
+                <div className="w-full h-48 bg-gray-100 grid place-items-center text-gray-400">��� �����</div>
+              )}
+              {story.audio_url && (
+                (() => {
+                  const isPlaying = player.current?.id === story.id && player.playing
+                  if (isPlaying) return null
+                  return (
+                    <button
+                      className="absolute inset-0 grid place-items-center"
+                      onClick={() => player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })}
+                      aria-label="��� �����"
+                      title="����"
+                    >
+                      <span className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7" aria-hidden="true">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <span className="sr-only">����</span>
+                      </span>
+                    </button>
+                  )
+                })()
+              )}
+            </div>
 
             {/* שיתוף ב־ווטסאפ */}
             <a
@@ -254,10 +264,10 @@ export default function Home() {
           {filtered.map((s) => {
             const pg = player.getProgress(s.id)
             const started = !!pg && (pg.pos || 0) > 0
-            const done = !!pg && pg.dur > 0 && pg.pos >= pg.dur - 2
+            const done = (!!pg && pg.dur > 0 && pg.pos >= pg.dur - 2) || isHeard(s.id)
             return (
             <article key={s.id} className="relative rounded-2xl border bg-white overflow-hidden shadow-sm">
-              {started && (
+              {(done || started) && (
                 <span className={`absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-full ${done ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
                   שמעתי
                 </span>
