@@ -43,11 +43,9 @@ export default function Root() {
 
             {/* פוש וניהול מצב עריכה */}
             <PushButton />
-            <EditModeToggle />
           </div>
         </EditModeProvider>
       </NotifyProvider>
     </PlayerProvider>
   )
 }
-

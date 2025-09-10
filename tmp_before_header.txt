@@ -64,15 +64,6 @@ export default function Header() {
     <header className="border-b bg-white" dir="rtl">
       <div className="max-w-6xl mx-auto px-4 flex items-center gap-6 h-16">
 
-        {/* לוגו */}
-        <a href="/" className="shrink-0 flex items-center">
-          <img
-            src={logoUrl}
-            alt="לוגו האתר"
-            className="w-10 h-10 object-contain"
-          />
-        </a>
-
         {/* תפריט */}
         <nav className="hidden md:flex items-center gap-5 flex-1">
           {links.map((l) => (
@@ -95,6 +86,16 @@ export default function Header() {
             </a>
           )}
         </nav>
+
+        {/* לוגו */}
+        <a href="/" className="shrink-0 flex items-center">
+          <img
+            src={logoUrl}
+            alt="לוגו האתר"
+            className="w-10 h-10 object-contain"
+          />
+        </a>
+
 
         {/* תאריך עברי */}
         <div className="ml-auto flex items-center gap-3">
@@ -136,4 +137,3 @@ export default function Header() {
     </header>
   )
 }
-

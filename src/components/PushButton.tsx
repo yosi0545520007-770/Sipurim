@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
+import { usePlayer } from './PlayerProvider'
 
 export default function PushButton() {
+  const player = usePlayer()
   const [supported, setSupported] = useState(false)
   const [granted, setGranted] = useState(
     typeof Notification !== 'undefined' ? Notification.permission === 'granted' : false
   )
+  const [visible, setVisible] = useState(false)
 
-  useEffect(() => {
-    setSupported('serviceWorker' in navigator && 'PushManager' in window)
-  }, [])
+  const isPlayerVisible = player.current !== null
+  const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
+
 
   function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -20,11 +23,21 @@ export default function PushButton() {
     return outputArray
   }
 
+  useEffect(() => {
+    const isSupported = 'serviceWorker' in navigator && 'PushManager' in window
+    setSupported(isSupported)
+    if (isSupported && Notification.permission !== 'granted') {
+      // Show the button only if notifications are not yet granted
+      setVisible(true)
+    }
+  }, [])
+
   async function subscribe() {
     try {
-      if (!supported) return alert('הדפדפן לא תומך בפוש')
+      if (!supported) return
 
       const reg = await navigator.serviceWorker.register('/sw.js')
+
       const perm = await Notification.requestPermission()
       if (perm !== 'granted') return
       setGranted(true)
@@ -54,13 +67,12 @@ export default function PushButton() {
     }
   }
 
-  if (!supported) return null
-
   return (
     <button
+      className={`fixed left-4 z-40 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg grid place-items-center transition-all duration-300 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'} ${isPlayerVisible ? 'bottom-24' : 'bottom-4'}`}
       onClick={subscribe}
-      className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition"
-      title={granted ? 'כבר רשום לקבלת עדכונים' : 'קבל עדכונים'}
+      aria-label="הירשם לקבלת עדכונים"
+      title="הירשם לקבלת עדכונים"
     >
       <Bell className="w-6 h-6" />
     </button>

@@ -179,7 +179,7 @@ export default function Home() {
               {story.image_url ? (
                 <img src={story.image_url} alt={story.title} className="w-full rounded-lg object-cover" />
               ) : (
-                <div className="w-full h-48 bg-gray-100 grid place-items-center text-gray-400">айп ъоерд</div>
+                <div className="w-full h-48 bg-gray-100 grid place-items-center text-gray-400">пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ</div>
               )}
               {story.audio_url && (
                 (() => {
@@ -189,14 +189,14 @@ export default function Home() {
                     <button
                       className="absolute inset-0 grid place-items-center"
                       onClick={() => player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })}
-                      aria-label="рвп сйфеш"
-                      title="дфтм"
+                      aria-label="пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ"
+                      title="пїЅпїЅпїЅпїЅ"
                     >
                       <span className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center">
                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7" aria-hidden="true">
                           <path d="M8 5v14l11-7z" />
                         </svg>
-                        <span className="sr-only">дфтм</span>
+                        <span className="sr-only">пїЅпїЅпїЅпїЅ</span>
                       </span>
                     </button>
                   )
@@ -244,20 +244,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* Ч—Ч™Ч¤Ч•Ч© ЧЎЧ™Ч¤Ч•ЧЁЧ™Чќ */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Ч—Ч™Ч¤Ч•Ч© ЧЎЧ™Ч¤Ч•ЧЁЧ™Чќ..."
-            className="border rounded-lg p-2 pr-8 text-sm w-full"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
 
       {search.trim() && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

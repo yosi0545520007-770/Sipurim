@@ -134,13 +134,6 @@ export default function Ilui() {
     <section className="container mx-auto px-4 py-10" dir="rtl">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">לעילוי נשמת</h1>
-        <button
-          type="button"
-          onClick={toggle}
-          className={`px-3 py-2 rounded-lg border text-sm ${editMode ? 'bg-blue-600 text-white' : 'bg-white'}`}
-        >
-          {editMode ? 'מצב עריכה: פעיל' : 'מצב עריכה: כבוי'}
-        </button>
       </div>
 
       {/* List */}

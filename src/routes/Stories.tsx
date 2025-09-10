@@ -86,7 +86,7 @@ export default function Stories() {
   return (
     <section className="p-6 max-w-6xl mx-auto" dir="rtl">
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 ml-auto flex-wrap justify-end w-full">
+        <div className="flex items-center gap-2 flex-wrap justify-start w-full">
           {categories.length > 0 && (
             <select
               className="border rounded-lg p-2 bg-white text-sm"
@@ -100,17 +100,13 @@ export default function Stories() {
             </select>
           )}
 
-          <div className="flex items-center gap-2 mr-auto">
-            <span className="text-sm text-gray-700">שמעתי/נשמע</span>
-            <button
-              type="button"
-              onClick={() => setHideHeard(v => !v)}
-              aria-pressed={hideHeard}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hideHeard ? 'bg-green-500' : 'bg-gray-300'}`}
-            >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${hideHeard ? 'translate-x-5' : 'translate-x-1'}`} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setHideHeard(v => !v)}
+            className={`px-3 py-2 rounded-lg border text-sm transition-colors ${hideHeard ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'}`}
+          >
+            {hideHeard ? 'סינון פעיל' : 'הסתר סיפורים ששמעתי'}
+          </button>
         </div>
       </div>
 
@@ -144,41 +140,11 @@ export default function Stories() {
                 <h2 className="text-lg font-semibold">{story.title}</h2>
                 {story.excerpt && <p className="text-sm text-gray-600 line-clamp-3">{story.excerpt}</p>}
 
-                {story.audio_url && (
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      className="px-3 py-1 rounded-lg bg-blue-600 text-white"
-                      onClick={() => player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })}
-                      aria-label="נגן"
-                    >
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 inline" aria-hidden="true">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                      <span className="sr-only">נגן</span>
-                    </button>
-
-                    {(() => {
-                      const pg = player.getProgress(story.id)
-                      if (!pg || !pg.dur) return null
-                      const pct = Math.min(100, Math.max(0, Math.round((pg.pos / pg.dur) * 100)))
-                      const done = pg.dur > 0 && pg.pos >= pg.dur - 2
-                      return (
-                        <span className={`text-xs px-2 py-1 rounded border ${done ? 'text-green-700 border-green-300' : 'text-gray-700 border-gray-300'}`}>
-                          {done ? 'נשמע' : `התקדמות: ${pct}%`}
-                        </span>
-                      )
-                    })()}
-
-                    <button
-                      type="button"
-                      className={`px-2 py-1 rounded border text-xs ${isHeard(story.id) ? 'bg-green-50 text-green-700 border-green-300' : 'bg-white text-gray-700 border-gray-300'}`}
-                      onClick={() => toggleHeard(story.id)}
-                      title={isHeard(story.id) ? 'בטל סימון "שמעתי"' : 'סמן "שמעתי"'}
-                    >
-                      {isHeard(story.id) ? 'שומע/נשמע' : 'שמעתי'}
-                    </button>
-                  </div>
-                )}
+                <div className="pt-2">
+                  <a href={`/story/${story.id}`} className="text-sm text-blue-600 hover:underline">
+                    פתח סיפור
+                  </a>
+                </div>
               </div>
             </article>
           )
@@ -196,4 +162,3 @@ export default function Stories() {
     </section>
   )
 }
-

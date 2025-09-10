@@ -76,6 +76,22 @@ export default function Drive() {
     })()
   }, [])
 
+  // Register the reshuffle function with the global player when on this page
+  useEffect(() => {
+    if (player.setOnReshuffle) {
+      player.setOnReshuffle(() => reshuffle)
+    }
+    return () => { if (player.setOnReshuffle) player.setOnReshuffle(undefined) }
+  }, [player.setOnReshuffle, tracks])
+
+  // Register skipHeard state with the global player
+  useEffect(() => {
+    if (player.setSkipHeard) {
+      player.setSkipHeard(skipHeard)
+    }
+    // No cleanup needed, it's a state setter
+  }, [skipHeard, player.setSkipHeard])
+
   const currentTrack = order[current]
 
   function playIndex(i: number) {
@@ -156,74 +172,36 @@ export default function Drive() {
         <>
         {/* Hero card like Home (הסיפור היומי) */}
         <div className="grid md:grid-cols-2 gap-6 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
-          <div className="space-y-3">
+          <div className="space-y-3 relative">
             {currentTrack?.image_url ? (
               <img src={currentTrack.image_url} alt={currentTrack.title} className="w-full rounded-lg object-cover" />
             ) : (
               <div className="w-full h-48 bg-gray-100 grid place-items-center text-gray-400">אין תמונה</div>
             )}
-            <div className="flex items-center gap-2">
-              {/* Prev */}
-              <button
-                className="mt-1 px-3 py-2 rounded-lg border text-gray-700"
-                onClick={prev}
-                aria-label="הקודם"
-                title="הקודם"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                  <path d="M15 5v14l-11-7z" />
-                </svg>
-              </button>
-              {/* Play/Pause */}
-              <button
-                className="mt-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
-                onClick={() => { if (!player.current && order.length) { playIndex(current) } else { player.toggle() } }}
-                aria-label="נגן"
-                title={player.playing ? 'השהה' : 'נגן'}
-              >
-                {player.playing ? (
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                    <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-                <span className="sr-only">{player.playing ? 'השהה' : 'נגן'}</span>
-              </button>
-              {/* Next */}
-              <button
-                className="mt-1 px-3 py-2 rounded-lg border text-gray-700"
-                onClick={next}
-                aria-label="הבא"
-                title="הבא"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </button>
-              {/* Reshuffle */}
-              <button
-                className="mt-1 px-3 py-2 rounded-lg border text-gray-700"
-                onClick={reshuffle}
-                aria-label="ערבב מחדש"
-                title="ערבב מחדש"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                  <path d="M17.65 6.35A8 8 0 0012 4a8 8 0 100 16 8 8 0 007.9-7H18a6 6 0 11-6-6c1.66 0 3.14.66 4.24 1.76L14 10h6V4l-2.35 2.35z" />
-                </svg>
-              </button>
-              {/* Skip heard toggle */}
-              <label className="mt-1 ml-2 inline-flex items-center gap-1 text-sm text-gray-700 cursor-pointer">
-                <input type="checkbox" checked={skipHeard} onChange={(e) => setSkipHeard(e.target.checked)} />
-                דלג על "שמעתי"
-              </label>
-            </div>
+            {currentTrack?.audio_url && (
+              (() => {
+                const isPlaying = player.current?.id === currentTrack.id && player.playing
+                if (isPlaying) return null
+                return (
+                  <button
+                    className="absolute inset-0 grid place-items-center"
+                    onClick={() => playIndex(current)}
+                    aria-label="נגן סיפור"
+                    title="נגן"
+                  >
+                    <span className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                    </span>
+                  </button>
+                )
+              })()
+            )}
           </div>
           <div className="flex flex-col justify-center">
             <h2 className="text-xl font-semibold mb-2">{currentTrack?.title || ''}</h2>
             <p className="text-gray-700 leading-relaxed">הפעלה אקראית של סיפורים שטרם הושמעו עבורך. אם יש סיפור בהמשכים, נשמיע את כל הפרקים שלא הושמעו — ברצף.</p>
+
+            <div className="mt-4 flex items-center gap-3 flex-wrap"></div>
           </div>
         </div>
         {/* Hide old layout for now */}

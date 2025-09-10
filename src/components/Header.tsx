@@ -1,14 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { HDate } from '@hebcal/core'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Search, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+type StorySuggestion = {
+  id: string
+  title: string
+}
 
 export default function Header() {
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [hebDate, setHebDate] = useState<string>('')
   const [user, setUser] = useState<any>(null)
   const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState<StorySuggestion[]>([])
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -50,55 +59,108 @@ export default function Header() {
   ]
 
   function submitSearch() {
-    const term = (q || '').trim()
+    const term = (searchQuery || '').trim()
     if (!term) return
     try { window.location.href = `/stories?q=${encodeURIComponent(term)}` } catch {}
   }
 
+  // --- Server-side search with Debouncing ---
+  useEffect(() => {
+    // Hide suggestions if not focused or query is empty
+    if (!isSearchFocused || !searchQuery.trim()) {
+      setSearchSuggestions([])
+      return
+    }
+
+    // Debounce: wait 300ms after user stops typing
+    const handler = setTimeout(async () => {
+      const term = searchQuery.trim()
+      if (!term) return
+
+      // Use Supabase Full-Text Search
+      const { data, error } = await supabase
+        .from('stories')
+        .select('id, title')
+        // Format for multi-word search: 'word1' & 'word2'
+        .textSearch('title', term.split(' ').filter(Boolean).map(t => `${t}:*`).join(' & '))
+        .limit(5)
+      if (!error) setSearchSuggestions(data || [])
+    }, 300)
+
+    return () => clearTimeout(handler) // Cleanup on new keystroke
+  }, [searchQuery, isSearchFocused])
+
   return (
     <header className="border-b bg-white" dir="rtl">
+      {/* Top row: logo right, date center, hamburger left */}
       <div className="max-w-6xl mx-auto px-4">
-        {/* Top row: logo right, date center, hamburger left */}
-        <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 gap-4">
-          <div className="justify-self-start">
-            <button
-              className="md:hidden p-2 rounded hover:bg-gray-100"
-              aria-label={open ? 'סגירת תפריט' : 'פתיחת תפריט'}
-              onClick={() => setOpen(v => !v)}
-            >
-              {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+        <div className="flex items-center h-16 gap-6">
+          {/* Hamburger button for mobile (moved to the right) */}
+          <button
+            className="md:hidden p-2 rounded hover:bg-gray-100"
+            aria-label={open ? 'סגירת תפריט' : 'פתיחת תפריט'}
+            onClick={() => setOpen(v => !v)}
+          >
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          {/* שורת חיפוש */}
+          <div className="w-full max-w-md relative">
+            <div className="relative md:ml-auto md:max-w-sm">
+              {/* לוגו בתוך שורת החיפוש */}
+              <a href="/" className="absolute right-2 top-1/2 -translate-y-1/2" aria-label="דף הבית">
+                <img src={logoUrl} alt="לוגו האתר" className="w-9 h-9 object-contain" />
+              </a>
+              <Search className="absolute right-12 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="חיפוש סיפורים..."
+                className="w-full bg-gray-100 border-transparent rounded-full p-3 pr-24 text-base focus:ring-2 focus:ring-blue-300 focus:bg-white transition"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click on suggestion
+              />
+            </div>
+            <AnimatePresence>
+              {searchSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-10"
+                >
+                  {searchSuggestions.map(story => {
+                    const href = `/story/${story.id}`
+                    return (
+                    <button
+                      key={story.id}
+                      onClick={() => { try { window.location.href = href } catch {} }}
+                      className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      {story.title}
+                    </button>
+                  )})}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div className="justify-self-center text-sm text-gray-700 whitespace-nowrap">{hebDate}</div>
-          <div className="justify-self-end">
-            <a href="/" className="shrink-0 inline-flex items-center">
-              <img src={logoUrl} alt="לוגו האתר" className="w-12 h-12 md:w-14 md:h-14 object-contain" />
-            </a>
+
+          {/* כפתור המבורגר למובייל ותאריך */}
+          <div className="ml-auto flex items-center gap-4">
+            {/* תפריט (עבר לכאן) */}
+            <nav className="hidden md:flex items-center gap-4">
+              {links.slice(0, 4).map((l) => (
+                <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600 whitespace-nowrap">{l.label}</a>
+              ))}
+            </nav>
+             <div className="hidden sm:block text-sm text-gray-700 whitespace-nowrap">{hebDate}</div>
           </div>
         </div>
 
-        {/* Desktop navigation */}
-        <nav className="hidden md:flex items-center justify-center gap-5 py-1">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600">{l.label}</a>
-          ))}
-          {user && (
-            <a href="/admin" className="text-sm text-gray-700 hover:text-blue-600 font-semibold">ניהול</a>
-          )}
-        </nav>
-
-        {/* Full-width search below */}
-        <div className="py-2">
-          <input
-            type="text"
-            placeholder="חיפוש סיפורים"
-            className="w-full border rounded-lg p-2 text-sm"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => { if ((e as any).key === 'Enter') submitSearch() }}
-          />
-        </div>
       </div>
+
       {open && (
         <div className="md:hidden border-t bg-white">
           <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3">
@@ -112,10 +174,13 @@ export default function Header() {
                 ניהול
               </a>
             )}
+            {/* Mobile date */}
+            <div className="md:hidden pt-2 mt-2 border-t text-center text-sm text-gray-500">
+              {hebDate}
+            </div>
           </div>
         </div>
       )}
     </header>
   )
 }
-
