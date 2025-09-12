@@ -40,6 +40,8 @@ export default function Drive() {
   const [loading, setLoading] = useState<boolean>(true)
   const [err, setErr] = useState<string | null>(null)
   const [skipHeard, setSkipHeard] = useState<boolean>(true)
+  const [showPrayer, setShowPrayer] = useState<boolean>(false)
+  const [isReadingPrayer, setIsReadingPrayer] = useState<boolean>(false)
 
   useEffect(() => {
     ;(async () => {
@@ -49,6 +51,7 @@ export default function Drive() {
         const { data, error } = await supabase
           .from('stories')
           .select('id,title,audio_url,image_url,is_series,series_id,publish_at')
+          .is('series_id', null) // Filter out stories that are part of a series
           .not('audio_url', 'is', null)
           .neq('audio_url', '')
           .order('publish_at', { ascending: false })
@@ -91,6 +94,38 @@ export default function Drive() {
     }
     // No cleanup needed, it's a state setter
   }, [skipHeard, player.setSkipHeard])
+
+  // --- Prayer Text-to-Speech ---
+  const prayerText = `יְהִי רָצוֹן מִלְּפָנֶיךָ ה' אֱלֹהֵינוּ וֵאלֹהֵי אֲבוֹתֵינוּ, שֶׁתּוֹלִיכֵנוּ לְשָׁלוֹם וְתַצְעִידֵנוּ לְשָׁלוֹם. וְתִסְמְכֵנוּ לְשָׁלוֹם. וְתַדְרִיכֵנוּ בְּדֶרֶךְ יְשָׁרָה. וְתַגִּיעֵנוּ לִמְחוֹז חֶפְצֵנוּ לְחַיִּים וּלְשִׂמְחָה וּלְשָׁלוֹם, וְתַחְזִירֵנוּ לְשָׁלוֹם. וְתַצִּילֵנוּ מִכַּף כָּל אוֹיֵב וְאוֹרֵב וְלִסְטִים וְחַיּוֹת רָעוֹת בַּדֶּרֶךְ, וּמִכָּל מִינֵי פֻּרְעָנֻיּוֹת הַמִּתְרַגְּשׁוֹת לָבוֹא לָעוֹלָם. וְתִשְׁלַח בְּרָכָה בְּכָל מַעֲשֵׂה יָדֵינוּ, וְתִתְּנֵנוּ לְחֵן וּלְחֶסֶד וּלְרַחֲמִים בְּעֵינֶיךָ וּבְעֵינֵי כָל רוֹאֵינוּ. וְתִגְמְלֵנוּ חֲסָדִים טוֹבִים, וְתִשְׁמַע קוֹל תְּפִלָּתֵנוּ, כִּי אַתָּה שׁוֹמֵעַ תְּפִלַּת כָּל פֶּה. בָּרוּךְ אַתָּה ה', שׁוֹמֵעַ תְּפִלָּה:
+וְיַעֲקֹב הָלַךְ לְדַרְכּוֹ וַיִּפְגְּעוּ בוֹ מַלְאֲכֵי אֱלֹהִים: לִקְרַאתְכֶם יֵצְאוּ. יְבָרֶכְךָ ה' וְיִשְׁמְרֶךָ: יָאֵר ה' פָּנָיו אֵלֶיךָ וִיחֻנֶּךָּ: יִשָּׂא ה' פָּנָיו אֵלֶיךָ וְיָשֵׂם לְךָ שָׁלוֹם:`
+
+  function togglePrayerReading() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    if (isReadingPrayer) {
+      window.speechSynthesis.cancel()
+      setIsReadingPrayer(false)
+    } else {
+      const voices = window.speechSynthesis.getVoices()
+      const hebrewGoogleVoice = voices.find(
+        (voice) => voice.lang === 'he-IL' && voice.name.includes('Google')
+      )
+
+      const utterance = new SpeechSynthesisUtterance(prayerText)
+      utterance.lang = 'he-IL'
+      utterance.rate = 0.9
+      utterance.onend = () => setIsReadingPrayer(false)
+      if (hebrewGoogleVoice) utterance.voice = hebrewGoogleVoice
+
+      window.speechSynthesis.speak(utterance)
+      setIsReadingPrayer(true)
+    }
+  }
+
+  useEffect(() => {
+    // Cleanup speech synthesis on component unmount or when modal closes
+    return () => window.speechSynthesis?.cancel()
+  }, [])
 
   const currentTrack = order[current]
 
@@ -158,6 +193,59 @@ export default function Drive() {
 
   return (
     <section className="p-6 max-w-6xl mx-auto" dir="rtl">
+      {/* Floating Prayer Button */}
+      <button
+        onClick={() => setShowPrayer(true)}
+        className="fixed bottom-24 md:bottom-6 left-6 z-40 bg-blue-600 text-white rounded-full shadow-lg px-4 py-2 text-sm hover:bg-blue-700"
+      >
+        תפילת הדרך
+      </button>
+
+      {/* Prayer Modal */}
+      {showPrayer && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 grid place-items-center p-4"
+          onClick={() => {
+            setShowPrayer(false)
+            window.speechSynthesis.cancel()
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-4 text-center">תפילת הדרך (נוסח חב"ד)</h2>
+            <div className="space-y-4 text-center leading-loose">
+              {prayerText.split('\n').map((p, i) => <p key={i} className={i > 0 ? 'font-semibold' : ''}>{p}</p>)}
+            </div>
+            <div className="text-center mt-6 flex items-center justify-center gap-4">
+              {'speechSynthesis' in window && (
+                <button
+                  onClick={togglePrayerReading}
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  {isReadingPrayer ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  )}
+                  {isReadingPrayer ? 'עצור' : 'הקרא'}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowPrayer(false)
+                  window.speechSynthesis.cancel()
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+              >
+                סגירה
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold mb-3">סיפורים ברצף לנסיעה</h1>
       <p className="text-gray-600 mb-4">רשימת השמעה אקראית מכל הסיפורים עם שמע. אפשר לדלג קדימה/אחורה ולערבב מחדש.</p>
 

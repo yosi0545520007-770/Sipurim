@@ -1,6 +1,6 @@
 ﻿﻿﻿﻿import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import Root from '@/routes/Root'
 import AdminRoot from '@/routes/AdminRoot'
@@ -8,15 +8,17 @@ import AdminHome from '@/routes/AdminHome'
 import Login from '@/routes/Login'
 import Home from '@/routes/Home'
 import StoriesAdmin from '@/routes/StoriesAdmin'
+import SeriesAdmin from '@/routes/SeriesAdmin'
+import SeriesEditAdmin from '@/routes/SeriesEditAdmin'
+import CategoriesAdmin from '@/routes/CategoriesAdmin'
+import AdminFaq from '@/routes/AdminFaq'
 import About from '@/routes/About'
 import Stories from '@/routes/Stories'
-import SeriesEditAdmin from '@/routes/SeriesEditAdmin'
-import SeriesAdmin from '@/routes/SeriesAdmin'
+import Drive from '@/routes/Drive'
 import Series from '@/routes/Series'
 import Ilui from '@/routes/Ilui'
 import Contact from '@/routes/Contact'
-import CategoriesAdmin from '@/routes/CategoriesAdmin'
-import AdminFaq from '@/routes/AdminFaq'
+import Faq from '@/routes/Faq'
 import RequireAuth from '@/components/RequireAuth'
 
 function NotFound() {
@@ -38,7 +40,7 @@ const router = createBrowserRouter([
       // --- Admin Routes ---
       {
         path: 'admin',
-        element: <AdminRoot />,
+        element: <RequireAuth><AdminRoot /></RequireAuth>,
         children: [
           { index: true, element: <AdminHome /> },
           { path: 'stories', element: <StoriesAdmin /> },
@@ -50,13 +52,13 @@ const router = createBrowserRouter([
       },
       { path: 'login', element: <Login /> },
 
-      { path: 'dashboard/stories', element: <Navigate to="/admin" replace /> },
-
       { path: 'about', element: <About /> },
       { path: 'stories', element: <Stories /> },
+      { path: 'drive', element: <Drive /> },
       { path: 'series', element: <Series /> },
       { path: 'ilui', element: <Ilui /> },
       { path: 'contact', element: <Contact /> },
+      { path: 'faq', element: <Faq /> },
       { path: '*', element: <NotFound /> },
     ],
   },

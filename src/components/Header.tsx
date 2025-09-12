@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
+import { listMemorials, type Memorial } from '@/lib/memorials'
 import { HDate } from '@hebcal/core'
 import { Menu, X, Search, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,6 +14,7 @@ export default function Header() {
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [hebDate, setHebDate] = useState<string>('')
   const [user, setUser] = useState<any>(null)
+  const [memorialName, setMemorialName] = useState<string>('')
   const [open, setOpen] = useState(false)
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -48,9 +50,20 @@ export default function Header() {
     return () => { listener.subscription.unsubscribe() }
   }, [])
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await listMemorials()
+      if (data && data.length > 0) {
+        const randomHonoree = data[Math.floor(Math.random() * data.length)]
+        setMemorialName(randomHonoree.honoree)
+      }
+    })()
+  }, [])
+
   const links = [
     { href: '/about', label: 'אודות' },
     { href: '/stories', label: 'רשימת סיפורים' },
+    { href: '/drive', label: 'סיפורים ברצף לנסיעה' },
     { href: '/series', label: 'סדרות סיפורים' },
     { href: '/ilui', label: 'לעילוי הנשמה' },
     { href: '/contact', label: 'צור קשר' },
@@ -102,8 +115,19 @@ export default function Header() {
           >
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          {/* שורת חיפוש */}
-          <div className="relative w-full max-w-xs sm:max-w-sm order-2 md:order-none">
+
+          {/* לוגו וניווט (צד ימין) */}
+          <div className="hidden md:flex items-center gap-6 flex-1">
+            <a href="/" className="shrink-0" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
+            <nav className="flex items-center gap-6">
+              {links.slice(0, 4).map((l) => (
+                <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600 whitespace-nowrap">{l.label}</a>
+              ))}
+            </nav>
+          </div>
+
+          {/* שורת חיפוש (מרכז) */}
+          <div className="relative w-full max-w-md mx-auto flex-1">
             <div className="relative md:ml-auto md:max-w-sm">              
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               <input
@@ -142,17 +166,10 @@ export default function Header() {
             </AnimatePresence>
           </div>
 
-          {/* לוגו וניווט */}
-          <div className="flex items-center gap-6 order-1 md:order-none">
-            {/* תפריט (עבר לכאן) */}
-            <nav className="hidden md:flex items-center gap-6">
-              {links.slice(0, 4).map((l) => (
-                <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600 whitespace-nowrap">{l.label}</a>
-              ))}
-            </nav>
-          </div>
+          {/* לוגו במובייל (מוסתר בדסקטופ) */}
+          <a href="/" className="shrink-0 md:hidden" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
 
-          <a href="/" className="shrink-0 ml-auto order-3 md:order-none" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
+          <div className="hidden md:flex flex-1"></div>
         </div>
 
       </div>
@@ -180,7 +197,11 @@ export default function Header() {
 
       {/* Date row */}
       <div className="max-w-6xl mx-auto px-4 pb-2">
-        <div className="text-sm text-gray-600 text-right">{hebDate}</div>
+        <div className="text-sm text-gray-600 text-center flex items-center justify-center gap-2 flex-wrap">
+          <span>{hebDate}</span>
+          {memorialName && <span className="text-gray-500">|</span>}
+          {memorialName && <span>הסיפור היומי לעילוי נשמת: <span className="font-semibold">{memorialName}</span></span>}
+        </div>
       </div>
     </header>
   )

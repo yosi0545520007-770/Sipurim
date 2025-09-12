@@ -16,6 +16,7 @@ type PlayerContextType = {
   playing: boolean
   playQueue: (list: Track[], startIndex?: number) => void
   playTrack: (t: Track) => void
+  closePlayer: () => void
   playIndex: (i: number) => void
   toggle: () => void
   pause: () => void
@@ -184,7 +185,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Right side controls (Shuffle) */}
-            <div className="w-32 flex items-center justify-end">
+            <div className="w-32 flex items-center justify-end gap-2">
+              <button onClick={closePlayer} className="p-2 rounded-full hover:bg-gray-700" title="סגור נגן">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
               {onReshuffle && (
                 <>
                   {typeof skipHeard === 'boolean' && setSkipHeard && (
@@ -216,6 +222,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     )
+  }
+
+  function closePlayer() {
+    const el = ensureAudio()
+    el.pause()
+    el.src = ''
+    setQueue([])
+    setIndex(0)
   }
 
   // ✅ עדכון נראות כפתור הערבוב כאשר onReshuffle משתנה
@@ -280,11 +294,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<PlayerContextType>(() => ({
     queue, index, current, playing,
-    playQueue, playTrack, playIndex,
+    playQueue, playTrack, closePlayer, playIndex,
     toggle, pause, resume, prev, next,
     getProgress,
     onReshuffle, setOnReshuffle, skipHeard, setSkipHeard
-  }), [queue, index, current, playing, playQueue, playTrack, playIndex, toggle, pause, resume, prev, next, getProgress, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
+  }), [queue, index, current, playing, playQueue, playTrack, closePlayer, playIndex, toggle, pause, resume, prev, next, getProgress, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
 
   return (
     <PlayerContext.Provider value={value}>

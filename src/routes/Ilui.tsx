@@ -4,6 +4,7 @@ import { listMemorials, createMemorial, updateMemorial, deleteMemorial, type Mem
 import ReactDatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { HDate } from '@hebcal/core'
+import '@/candle.css'
 import { useEditMode } from '@/components/EditMode'
 
 // type is imported from lib/memorials
@@ -62,6 +63,22 @@ function hebMonthYearFromDate(d: Date) {
   const month = stripNiqqud(String(rawMonth))
   const yearNum = (hd.getFullYear && hd.getFullYear()) || 5785
   return { month, year: hebrewYearLetters(yearNum) }
+}
+
+function Candle() {
+  return (
+    <div className="w-12 h-12" title="נר זיכרון">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        {/* Flame */}
+        <g className="flame-flicker">
+          <path d="M50 30 C 55 40, 55 50, 50 60 C 45 50, 45 40, 50 30 Z" fill="url(#flameGradient)" />
+        </g>
+        {/* Candle Body */}
+        <rect x="40" y="60" width="20" height="35" rx="3" fill="#F7F3E3" stroke="#E0DBCB" strokeWidth="1" />
+        <defs><radialGradient id="flameGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style={{stopColor: '#FEEB9C', stopOpacity: 1}} /><stop offset="100%" style={{stopColor: '#F2994A', stopOpacity: 1}} /></radialGradient></defs>
+      </svg>
+    </div>
+  )
 }
 
 export default function Ilui() {
@@ -140,12 +157,15 @@ export default function Ilui() {
       {loading && <div className="text-gray-500">טוען…</div>}
       {err && <div className="text-red-600 mb-3">{err}</div>}
       {!loading && (
-        <ul className="grid md:grid-cols-2 gap-4 mb-10">
+        <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {mem.map(m=> (
-            <li key={m.id} className="rounded-2xl border bg-white p-4">
-              <div className="font-semibold">{m.honoree}</div>
-              <div className="text-sm text-gray-500">
-                {m.event_date ? new Date(m.event_date).toLocaleDateString('he-IL') : ''}
+        <li key={m.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center gap-3 shadow-sm">
+          <Candle />
+              <div className="flex-1">
+                <div className="font-semibold text-lg">{m.honoree}</div>
+                <div className="text-sm text-gray-500">
+                  {m.event_date ? `נפטר/ה בתאריך: ${toHebrewText(m.event_date)}` : ''}
+                </div>
               </div>
             </li>
           ))}
@@ -217,7 +237,7 @@ export default function Ilui() {
             <div className="space-y-3">
               <ReactDatePicker
                 selected={formDate}
-                onChange={(d) => { setFormDate(d as Date | null); setPickerPreview(toHebrewText(d || new Date())) }}
+                onChange={(d: Date | null) => { setFormDate(d); setPickerPreview(toHebrewText(d || new Date())) }}
                 inline
                 calendarStartDay={0}
                 isClearable={false}

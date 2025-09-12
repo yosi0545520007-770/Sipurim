@@ -97,7 +97,7 @@ export default function Series() {
                 ) : (
                   <div className="w-full h-full grid place-items-center text-xs text-gray-400">ללא תמונה</div>
                 )}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                   <button
                     onClick={() => playSeries(s.id)}
                     className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center disabled:opacity-50 disabled:cursor-wait"

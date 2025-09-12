@@ -204,7 +204,6 @@ export default function StoriesAdmin() {
       .from('stories')
       .select('id,title,excerpt,image_url,audio_url,publish_at,updated_at,play_date,series_id,series_order,category_id')
       .order('updated_at', { ascending: false })
-      .limit(50)
     if (error) throw new Error(error.message)
     setList((data || []) as Story[])
   }
@@ -303,7 +302,8 @@ export default function StoriesAdmin() {
     setForm({
       title:'',excerpt:'',image_url:'',audio_url:'',
       publish_at:new Date().toISOString(),play_date:'',
-      in_series:false,series_id:'',series_order:'',category_id:''
+      in_series:false,series_id:'',series_order:'',category_id:'',
+      tag_ids: []
     })
     setModalOpen(true)
   }
@@ -313,7 +313,8 @@ export default function StoriesAdmin() {
       title: s.title || '', excerpt: s.excerpt || '', image_url: s.image_url || '', audio_url: s.audio_url || '',
       publish_at: s.publish_at || new Date().toISOString(), play_date: s.play_date || '',
       in_series: !!s.series_id, series_id: s.series_id || '', series_order: (s.series_order ?? '') as any,
-      category_id: s.category_id || ''
+      category_id: s.category_id || '',
+      tag_ids: [] // will be loaded below
     })
     setModalOpen(true)
     try {
@@ -684,7 +685,7 @@ export default function StoriesAdmin() {
             <div className="space-y-3">
               <ReactDatePicker
                 selected={pickerDate}
-                onChange={(d) => { setPickerDate(d as Date | null); setPickerPreview(toHebrewText(d || new Date())) }}
+                onChange={(d: Date | null) => { setPickerDate(d); setPickerPreview(toHebrewText(d || new Date())) }}
                 inline
                 calendarStartDay={0}
                 isClearable={false}
@@ -750,7 +751,7 @@ export default function StoriesAdmin() {
 
       {/* Mobile Filters trigger */}
       <div className="md:hidden flex items-center justify-between p-4">
-        <div className="font-medium">סיפורים (עד 50 אחרונים)</div>
+        <div className="font-medium">סיפורים</div>
         <button className="px-3 py-2 rounded-lg border" onClick={()=>setFilterOpen(true)}>סינון</button>
       </div>
 
@@ -826,7 +827,7 @@ export default function StoriesAdmin() {
       {/* Table (desktop) */}
       <div className="hidden md:block rounded-2xl border overflow-x-auto bg-white">
         <div className="p-4 flex items-center gap-2 flex-wrap">
-          <div className="font-medium">סיפורים (עד 50 אחרונים)</div>
+          <div className="font-medium">סיפורים</div>
           <input className="border rounded-lg p-2 text-sm" placeholder="חיפוש..." value={filterQ} onChange={e=>setFilterQ(e.target.value)} />
           <select className="border rounded-lg p-2 bg-white text-sm" value={filterCategory} onChange={e=>setFilterCategory(e.target.value)}>
             <option value="">כל הקטגוריות</option>

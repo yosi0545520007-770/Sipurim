@@ -38,7 +38,7 @@ export default function Stories() {
         const { data, error } = await supabase
           .from('stories')
           .select('id,title,excerpt,image_url,audio_url,publish_at,play_date,category_id')
-          .is('series_id', null) // <--- הוספת סינון
+          .is('series_id', null)
           .order('play_date', { ascending: false })
           .range(0, PAGE_SIZE - 1)
         if (error) throw error
@@ -61,7 +61,7 @@ export default function Stories() {
       const { data, error } = await supabase
         .from('stories')
         .select('id,title,excerpt,image_url,audio_url,publish_at,play_date,category_id')
-        .is('series_id', null) // <--- הוספת סינון
+        .is('series_id', null)
         .order('play_date', { ascending: false })
         .range(start, end)
       if (error) throw error
@@ -150,7 +150,7 @@ export default function Stories() {
                         e.stopPropagation()
                         player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })
                       }}
-                      className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/30 transition-colors opacity-0 group-hover:opacity-100"
+                      className="absolute inset-0 grid place-items-center bg-black/20"
                       aria-label={`נגן את ${story.title}`}
                     >
                       <span className="w-12 h-12 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-0.5" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg></span>
