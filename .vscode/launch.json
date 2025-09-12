@@ -1,0 +1,19 @@
+{
+    // השתמש ב-IntelliSense כדי ללמוד על תכונות אפשריות.
+    // רחף מעל תכונות קיימות כדי לראות את התיאורים שלהן.
+    // למידע נוסף, בקר ב-https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "browse-lite",
+            "name": "Browse Lite: Attach",
+            "request": "attach"
+        },
+        {
+            "type": "browse-lite",
+            "request": "launch",
+            "name": "Browse Lite: Launch",
+            "url": "http://localhost:3000"
+        }
+    ]
+}
