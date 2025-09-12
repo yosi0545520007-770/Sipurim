@@ -36,7 +36,7 @@ export default function Root() {
               </div>
             </main>
 
-            <footer className="border-t py-8 text-center text-sm text-gray-500">
+            <footer className="border-t bg-gray-50 py-8 text-center text-sm text-gray-500">
               <div>ספריית הסיפורים {new Date().getFullYear()}</div>
               <div className="mt-1">יחי אדונינו מורינו ורבינו מלך המשיח לעולם ועד</div>
             </footer>

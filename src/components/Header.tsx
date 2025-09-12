@@ -106,7 +106,7 @@ export default function Header() {
     <header className="border-b bg-white" dir="rtl">
       <div className="max-w-6xl mx-auto px-4">
         {/* Top row */}
-        <div className="flex items-center h-16 gap-4">
+        <div className="flex items-center justify-between h-16 gap-4">
           <button
             // Hamburger button
             className="md:hidden p-2 rounded hover:bg-gray-100 flex-shrink-0"
@@ -117,7 +117,7 @@ export default function Header() {
           </button>
 
           {/* לוגו וניווט (צד ימין) */}
-          <div className="hidden md:flex items-center gap-6 flex-1">
+          <div className="hidden md:flex items-center gap-6">
             <a href="/" className="shrink-0" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
             <nav className="flex items-center gap-6">
               {links.slice(0, 4).map((l) => (
@@ -127,7 +127,7 @@ export default function Header() {
           </div>
 
           {/* שורת חיפוש (מרכז) */}
-          <div className="relative w-full max-w-md mx-auto flex-1">
+          <div className="relative w-full max-w-md mx-auto">
             <div className="relative md:ml-auto md:max-w-sm">              
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               <input
@@ -168,8 +168,6 @@ export default function Header() {
 
           {/* לוגו במובייל (מוסתר בדסקטופ) */}
           <a href="/" className="shrink-0 md:hidden" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
-
-          <div className="hidden md:flex flex-1"></div>
         </div>
 
       </div>

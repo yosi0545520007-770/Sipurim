@@ -170,10 +170,10 @@ export default function Home() {
       {!loading && !story && <div className="text-gray-500">אין סיפורים להצגה.</div>}
 
       {story && (
-        <div className="grid md:grid-cols-2 gap-6 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
           {/* ימין: תמונה + אודיו + וואטסאפ + פוש */}
           <div className="space-y-3">
-            <div className="relative">
+            <div className="relative aspect-video">
               {story.image_url ? (
                 <img src={story.image_url} alt={story.title} className="w-full rounded-lg object-cover" />
               ) : (

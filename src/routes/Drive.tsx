@@ -258,8 +258,8 @@ export default function Drive() {
 
       {!loading && order.length > 0 && (
         <>
-        {/* Hero card like Home (הסיפור היומי) */}
-        <div className="grid md:grid-cols-2 gap-6 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
+        {/* Hero card */}
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start bg-white border rounded-2xl overflow-hidden shadow-sm p-4 mb-10">
           <div className="space-y-3 relative">
             {currentTrack?.image_url ? (
               <img src={currentTrack.image_url} alt={currentTrack.title} className="w-full rounded-lg object-cover" />
@@ -272,7 +272,7 @@ export default function Drive() {
                 if (isPlaying) return null
                 return (
                   <button
-                    className="absolute inset-0 grid place-items-center"
+                    className="absolute inset-0 grid place-items-center bg-black/20"
                     onClick={() => playIndex(current)}
                     aria-label="נגן סיפור"
                     title="נגן"
