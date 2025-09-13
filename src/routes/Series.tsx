@@ -4,7 +4,7 @@ import { usePlayer } from '@/components/PlayerProvider'
 
 type SeriesRow = {
   id: string
-  title: string
+  title: string // This was already correct, just confirming
   description: string | null
   cover_url: string | null
   created_at: string
@@ -17,7 +17,7 @@ type StoryTrack = {
   series_id: string
 }
 
-export default function Series() {
+export function Component() {
   const player = usePlayer()
   const [series, setSeries] = useState<SeriesRow[]>([])
   const [err, setErr] = useState<string | null>(null)

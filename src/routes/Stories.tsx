@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/components/PlayerProvider'
-import { useHeard, toggleHeard } from '@/lib/heard'
+import { useHeard } from '@/lib/heard'
+import { Heart, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import type { User } from '@supabase/supabase-js'
 
 type Story = {
   id: string
@@ -12,13 +15,15 @@ type Story = {
   publish_at: string | null
   play_date: string | null
   category_id: string | null
+  is_favorited: boolean // New property to track favorite status
 }
 
-type Category = { id: string; name: string }
+type Category = { id: string; title: string }
 
-export default function Stories() {
+export function Component() {
   const player = usePlayer()
   const { isHeard } = useHeard()
+  const [user, setUser] = useState<User | null>(null)
 
   const [items, setItems] = useState<Story[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -26,21 +31,36 @@ export default function Stories() {
   const [hideHeard, setHideHeard] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(true)
   const [err, setErr] = useState<string | null>(null)
-  const PAGE_SIZE = 48
+  const PAGE_SIZE = 24
   const [hasMore, setHasMore] = useState(true)
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser()
+      setUser(data.user)
+    }
+    fetchUser()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true); setErr(null)
-        const { data: cats } = await supabase.from('categories').select('id,name').order('name')
-        setCategories((cats || []) as Category[])
-        const { data, error } = await supabase
-          .from('stories')
-          .select('id,title,excerpt,image_url,audio_url,publish_at,play_date,category_id')
-          .is('series_id', null)
-          .order('play_date', { ascending: false })
-          .range(0, PAGE_SIZE - 1)
+        const { data: cats } = await supabase.from('categories').select('id,title').order('title')
+        setCategories((cats || []))
+
+        // Use an RPC function to fetch stories and their favorite status for the current user
+        let rpcParams: any = { _limit: PAGE_SIZE, _offset: 0 }
+        if (categoryFilter) {
+          rpcParams._category_id = categoryFilter
+        }
+
+        const { data, error } = await supabase.rpc('get_stories_with_favorites', rpcParams)
+
         if (error) throw error
         const list = (data || []) as Story[]
         setItems(list)
@@ -51,19 +71,20 @@ export default function Stories() {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [categoryFilter, user]) // Re-fetch when categoryFilter or user changes
 
   async function loadMore() {
     try {
-      setLoading(true)
+      // No need to set global loading to true, we'll show a specific loader
       const start = items.length
-      const end = start + PAGE_SIZE - 1
-      const { data, error } = await supabase
-        .from('stories')
-        .select('id,title,excerpt,image_url,audio_url,publish_at,play_date,category_id')
-        .is('series_id', null)
-        .order('play_date', { ascending: false })
-        .range(start, end)
+
+      let rpcParams: any = { _limit: PAGE_SIZE, _offset: start }
+      if (categoryFilter) {
+        rpcParams._category_id = categoryFilter
+      }
+
+      const { data, error } = await supabase.rpc('get_stories_with_favorites', rpcParams)
+
       if (error) throw error
       const list = (data || []) as Story[]
       setItems(prev => [...prev, ...list])
@@ -75,9 +96,31 @@ export default function Stories() {
     }
   }
 
+  const toggleFavorite = async (storyId: string, isFavorited: boolean) => {
+    if (!user) {
+      alert('יש להתחבר כדי לסמן סיפורים אהובים.')
+      return
+    }
+
+    // Optimistic UI update
+    setItems(items.map(item => item.id === storyId ? { ...item, is_favorited: !isFavorited } : item))
+
+    try {
+      if (isFavorited) {
+        await supabase.from('favorite_stories').delete().match({ user_id: user.id, story_id: storyId })
+      } else {
+        await supabase.from('favorite_stories').insert({ user_id: user.id, story_id: storyId })
+      }
+    } catch (error) {
+      // Revert on error
+      setItems(items.map(item => item.id === storyId ? { ...item, is_favorited: isFavorited } : item))
+      alert('שגיאה בעדכון מועדפים.')
+    }
+  }
+
   // Filtering
-  let visible = categoryFilter ? items.filter(s => s.category_id === categoryFilter) : items
-  if (hideHeard) {
+  let visible = items
+  if (hideHeard) { // This filter is now applied on the already category-filtered items
     visible = visible.filter(s => {
       const pg = player.getProgress(s.id)
       const doneByProgress = !!pg && pg.dur > 0 && pg.pos >= pg.dur - 2
@@ -97,7 +140,7 @@ export default function Stories() {
             >
               <option value="">בחר/י קטגוריה להשמעה</option>
               {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.title}</option>
               ))}
             </select>
           )}
@@ -133,6 +176,18 @@ export default function Stories() {
                   <span className={`absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-full z-10 ${done ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
                     {done ? 'נשמע' : 'בתהליך'}
                   </span>
+                )}
+                {user && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toggleFavorite(story.id, story.is_favorited)
+                    }}
+                    className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-white/70 backdrop-blur-sm"
+                  >
+                    <Heart className={`w-5 h-5 transition-colors ${story.is_favorited ? 'text-red-500 fill-red-500' : 'text-gray-500'}`} />
+                  </button>
                 )}
 
                 <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100 group">
@@ -170,9 +225,15 @@ export default function Stories() {
 
       {hasMore && (
         <div className="mt-6 text-center">
-          <button onClick={() => loadMore()} disabled={loading} className="px-4 py-2 rounded-lg border text-sm disabled:opacity-50">
-            {loading ? 'טוען…' : 'טען עוד'}
+          <button onClick={loadMore} disabled={loading} className="px-4 py-2 rounded-lg border text-sm disabled:opacity-50">
+            טען עוד
           </button>
+        </div>
+      )}
+      {loading && items.length > 0 && (
+        <div className="mt-6 text-center flex justify-center items-center gap-2 text-gray-500">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>טוען סיפורים נוספים...</span>
         </div>
       )}
       {/* spacer handled by PlayerProvider bar */}

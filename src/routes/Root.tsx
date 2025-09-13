@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import Header from '@/components/Header'
 import PushButton from '@/components/PushButton'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import PushPrompt from '@/components/PushPrompt'
 import { PlayerProvider } from '@/components/PlayerProvider'
 import { NotifyProvider } from '@/components/Notify'
@@ -31,9 +31,9 @@ export default function Root() {
             </div>
 
             <main className="flex-1">
-              <div className="max-w-6xl mx-auto p-6">
+              <Suspense fallback={<div className="p-6 text-center text-gray-500">טוען...</div>}>
                 <Outlet />
-              </div>
+              </Suspense>
             </main>
 
             <footer className="border-t bg-gray-50 py-8 text-center text-sm text-gray-500">

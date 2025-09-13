@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
-export default function Login() {
+export function Component() {
   const nav = useNavigate()
   const [params] = useSearchParams()
   const [email, setEmail] = useState('')

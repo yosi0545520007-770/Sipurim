@@ -1,15 +1,13 @@
 @keyframes flicker {
   0%, 100% {
-    transform: scaleY(1) rotate(-2deg);
+    transform: scaleY(1) scaleX(1) skewX(0);
     opacity: 1;
   }
   50% {
-    transform: scaleY(0.95) rotate(2deg);
-    opacity: 0.9;
+    transform: scaleY(0.95) scaleX(1.05) skewX(5deg);
+    opacity: 0.95;
   }
 }
-
 .flame-flicker {
   animation: flicker 3s ease-in-out infinite;
-  transform-origin: bottom;
 }

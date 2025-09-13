@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { listMemorials, type Memorial } from '@/lib/memorials'
+import { listMemorials } from '@/lib/memorials'
 import { HDate } from '@hebcal/core'
-import { Menu, X, Search, Loader2 } from 'lucide-react'
+import { Menu, X, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type StorySuggestion = {
@@ -62,10 +62,10 @@ export default function Header() {
 
   const links = [
     { href: '/about', label: 'אודות' },
-    { href: '/stories', label: 'רשימת סיפורים' },
+    { href: '/stories', label: 'סיפורים' },
     { href: '/drive', label: 'סיפורים ברצף לנסיעה' },
-    { href: '/series', label: 'סדרות סיפורים' },
-    { href: '/ilui', label: 'לעילוי הנשמה' },
+    { href: '/series', label: 'סדרות' },
+    { href: '/ilui', label: 'לעילוי נשמת' },
     { href: '/contact', label: 'צור קשר' },
     { href: '/faq', label: 'שאלות נפוצות' },
   ]
@@ -102,72 +102,76 @@ export default function Header() {
     return () => clearTimeout(handler) // Cleanup on new keystroke
   }, [searchQuery, isSearchFocused])
 
+  const renderSearch = (wrapperClassName = "") => (
+    <div className={`relative w-full md:w-auto md:max-w-sm ${wrapperClassName}`}>
+      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      <input
+        type="text"
+        placeholder="חיפוש סיפורים..."
+        className="w-full bg-gray-100 border-transparent rounded-full p-2 pr-10 text-sm focus:ring-2 focus:ring-blue-300 focus:bg-white transition"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
+        onFocus={() => setIsSearchFocused(true)}
+        onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click on suggestion
+      />
+      <AnimatePresence>
+        {searchSuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-10"
+          >
+            {searchSuggestions.map(story => {
+              const href = `/story/${story.id}`
+              return (
+                <button
+                  key={story.id}
+                  onClick={() => { try { window.location.href = href } catch {} }}
+                  className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  {story.title}
+                </button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+
   return (
     <header className="border-b bg-white" dir="rtl">
       <div className="max-w-6xl mx-auto px-4">
         {/* Top row */}
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between md:justify-start h-16 gap-4">
           <button
             // Hamburger button
             className="md:hidden p-2 rounded hover:bg-gray-100 flex-shrink-0"
-            aria-label={open ? 'סגירת תפריט' : 'פתיחת תפריט'}
+            aria-label={open ? 'סגור תפריט' : 'פתח תפריט'}
             onClick={() => setOpen(v => !v)}
           >
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
-          {/* לוגו וניווט (צד ימין) */}
-          <div className="hidden md:flex items-center gap-6">
-            <a href="/" className="shrink-0" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
-            <nav className="flex items-center gap-6">
-              {links.slice(0, 4).map((l) => (
-                <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600 whitespace-nowrap">{l.label}</a>
-              ))}
-            </nav>
+          {/* לוגו */}
+          <a href="/" className="shrink-0" aria-label="עמוד הבית">
+            <img src={logoUrl} alt="סיפורים – דף הבית" className="w-10 h-10 object-contain" />
+          </a>
+
+          {/* Mobile search */}
+          <div className="flex-1 md:hidden">
+            {renderSearch()}
           </div>
 
-          {/* שורת חיפוש (מרכז) */}
-          <div className="relative w-full max-w-md mx-auto">
-            <div className="relative md:ml-auto md:max-w-sm">              
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="חיפוש סיפורים..."
-                className="w-full bg-gray-100 border-transparent rounded-full p-3 pr-10 text-base focus:ring-2 focus:ring-blue-300 focus:bg-white transition"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click on suggestion
-              />
-            </div>
-            <AnimatePresence>
-              {searchSuggestions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-10"
-                >
-                  {searchSuggestions.map(story => {
-                    const href = `/story/${story.id}`
-                    return (
-                    <button
-                      key={story.id}
-                      onClick={() => { try { window.location.href = href } catch {} }}
-                      className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      {story.title}
-                    </button>
-                  )})}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* לוגו במובייל (מוסתר בדסקטופ) */}
-          <a href="/" className="shrink-0 md:hidden" aria-label="דף הבית"><img src={logoUrl} alt="לוגו האתר" className="w-10 h-10 object-contain" /></a>
+          {/* ניווט ראשי */}
+          <nav className="hidden md:flex items-center gap-6">
+            {links.map((l) => (
+              <a key={l.href} href={l.href} className="text-sm text-gray-700 hover:text-blue-600 whitespace-nowrap">{l.label}</a>
+            ))}
+          </nav>
         </div>
 
       </div>
@@ -194,11 +198,18 @@ export default function Header() {
       )}
 
       {/* Date row */}
-      <div className="max-w-6xl mx-auto px-4 pb-2">
-        <div className="text-sm text-gray-600 text-center flex items-center justify-center gap-2 flex-wrap">
-          <span>{hebDate}</span>
-          {memorialName && <span className="text-gray-500">|</span>}
-          {memorialName && <span>הסיפור היומי לעילוי נשמת: <span className="font-semibold">{memorialName}</span></span>}
+      <div className="max-w-6xl mx-auto px-4 pb-2 border-t md:border-t-0">
+        <div className="text-sm text-gray-600 text-center flex items-center justify-center md:justify-start gap-4 flex-wrap">
+          {/* Desktop search */}
+          <div className="hidden md:block">
+            {renderSearch('md:order-none')}
+          </div>
+
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <span>{hebDate}</span>
+            {memorialName && <span className="text-gray-500">|</span>}
+            {memorialName && <span>לעילוי נשמת: <span className="font-semibold">{memorialName}</span></span>}
+          </div>
         </div>
       </div>
     </header>

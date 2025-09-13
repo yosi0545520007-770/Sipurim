@@ -30,7 +30,7 @@ function getTodayHebrew(): string {
 }
 
 /* ---------- Component ---------- */
-export default function Home() {
+export function Component() {
   const player = usePlayer()
   const { isHeard } = useHeard()
   // Daily story

@@ -1,29 +1,8 @@
-﻿﻿﻿﻿import React from 'react'
+﻿﻿﻿import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import Root from '@/routes/Root'
-import AdminRoot from '@/routes/AdminRoot'
-import AdminHome from '@/routes/AdminHome'
-import Login from '@/routes/Login'
-import Home from '@/routes/Home'
-import StoriesAdmin from '@/routes/StoriesAdmin'
-import SeriesAdmin from '@/routes/SeriesAdmin'
-import SeriesEditAdmin from '@/routes/SeriesEditAdmin'
-import CategoriesAdmin from '@/routes/CategoriesAdmin'
-import AdminFaq from '@/routes/AdminFaq'
-import About from '@/routes/About'
-import Stories from '@/routes/Stories'
-import Drive from '@/routes/Drive'
-import Series from '@/routes/Series'
-import Ilui from '@/routes/Ilui'
-import Contact from '@/routes/Contact'
-import Faq from '@/routes/Faq'
-import RequireAuth from '@/components/RequireAuth'
-
-function NotFound() {
-  return <div className="p-6 text-center" dir="rtl"><h2>404 - דף לא נמצא</h2><p>הדף שחיפשת לא קיים.</p><a href="/" className="text-blue-600">חזרה לדף הבית</a></div>
-}
 
 function ErrorElement() {
   return <div className="p-6 text-center text-red-600" dir="rtl"><h2>אופס! משהו השתבש</h2><p>אנו מצטערים, התרחשה שגיאה בלתי צפויה.</p><a href="/" className="text-blue-600">חזרה לדף הבית</a></div>
@@ -33,33 +12,37 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <Root />,
-    errorElement: <Root><ErrorElement /></Root>,
+    errorElement: <ErrorElement />,
+    // Wrap all children in Suspense for lazy loading
+    // You can add a <Spinner /> or some loading indicator to the fallback
     children: [
-      { index: true, element: <Home /> },
-
-      // --- Admin Routes ---
-      {
-        path: 'admin',
-        element: <RequireAuth><AdminRoot /></RequireAuth>,
-        children: [
-          { index: true, element: <AdminHome /> },
-          { path: 'stories', element: <StoriesAdmin /> },
-          { path: 'series', element: <SeriesAdmin /> },
-          { path: 'series/:seriesId', element: <SeriesEditAdmin /> },
-          { path: 'categories', element: <CategoriesAdmin /> },
-          { path: 'faq', element: <AdminFaq /> },
-        ],
-      },
-      { path: 'login', element: <Login /> },
-
-      { path: 'about', element: <About /> },
-      { path: 'stories', element: <Stories /> },
-      { path: 'drive', element: <Drive /> },
-      { path: 'series', element: <Series /> },
-      { path: 'ilui', element: <Ilui /> },
-      { path: 'contact', element: <Contact /> },
-      { path: 'faq', element: <Faq /> },
-      { path: '*', element: <NotFound /> },
+      { index: true, lazy: () => import('@/routes/Home') },
+      { path: 'login', lazy: () => import('@/routes/Login') },
+      { path: 'about', lazy: () => import('@/routes/About') },
+      { path: 'stories', lazy: () => import('@/routes/Stories') },
+      { path: 'drive', lazy: () => import('@/routes/Drive') },
+      { path: 'series', lazy: () => import('@/routes/Series') },
+      { path: 'ilui', lazy: () => import('@/routes/Ilui') },
+      { path: 'contact', lazy: () => import('@/routes/Contact') },
+      { path: 'faq', lazy: () => import('@/routes/Faq') },
+      { path: '*', lazy: () => import('@/routes/NotFound') },
+    ],
+  },
+  // --- Admin Routes ---
+  // Grouping admin routes under a separate top-level path
+  // This uses a loader to check auth, which is more robust
+  {
+    path: 'admin',
+    // The `lazy` property automatically looks for a `Component` export in the imported file.
+    lazy: () => import('@/routes/AdminRoot'),
+    children: [
+      { index: true, lazy: () => import('@/routes/AdminHome') },
+      { path: 'stories', lazy: () => import('@/routes/StoriesAdmin') },
+      { path: 'series', lazy: () => import('@/routes/SeriesAdmin') },
+      { path: 'series/:seriesId', lazy: () => import('@/routes/SeriesEditAdmin') },
+      { path: 'categories', lazy: () => import('@/routes/CategoriesAdmin') },
+      { path: 'faq', lazy: () => import('@/routes/AdminFaq') },
+      { path: 'memorials', lazy: () => import('@/routes/MemorialsAdmin') },
     ],
   },
 ], {

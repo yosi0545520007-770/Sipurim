@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-export default function Contact() {
+export function Component() {
   const [f, setF] = useState({ name: '', email: '', subject: '', message: '' })
   async function submit(e:any){
     e.preventDefault()

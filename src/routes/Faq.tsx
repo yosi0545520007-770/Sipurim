@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 type Faq = { id: string; question: string; answer: string; sort_order: number }
 
-export default function Faq() {
+export function Component() {
   const [list, setList] = useState<Faq[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)

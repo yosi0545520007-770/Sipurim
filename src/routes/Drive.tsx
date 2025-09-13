@@ -8,18 +8,7 @@ type Track = {
   title: string
   audio_url: string
   image_url: string | null
-  is_series?: boolean
   series_id?: string | null
-  publish_at?: string | null
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice()
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 function guessAudioMime(url: string): string {
@@ -31,15 +20,13 @@ function guessAudioMime(url: string): string {
   return 'audio/mp4'
 }
 
-export default function Drive() {
+export function Component() {
   const player = usePlayer()
   const { isHeard } = useHeard()
-  const [tracks, setTracks] = useState<Track[]>([])
   const [order, setOrder] = useState<Track[]>([])
   const [current, setCurrent] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   const [err, setErr] = useState<string | null>(null)
-  const [skipHeard, setSkipHeard] = useState<boolean>(true)
   const [showPrayer, setShowPrayer] = useState<boolean>(false)
   const [isReadingPrayer, setIsReadingPrayer] = useState<boolean>(false)
 
@@ -50,26 +37,12 @@ export default function Drive() {
         setErr(null)
         const { data, error } = await supabase
           .from('stories')
-          .select('id,title,audio_url,image_url,is_series,series_id,publish_at')
-          .is('series_id', null) // Filter out stories that are part of a series
+          .select('id,title,audio_url,image_url')
+          .is('series_id', null)
           .not('audio_url', 'is', null)
           .neq('audio_url', '')
-          .order('publish_at', { ascending: false })
-          .limit(500)
         if (error) throw error
-        const list = ((data || []) as any[])
-          .filter((r) => !!r && !!r.audio_url)
-          .map((r) => ({
-            id: r.id as string,
-            title: r.title as string,
-            audio_url: r.audio_url as string,
-            image_url: (r.image_url ?? null) as string | null,
-            is_series: (r.is_series ?? false) as boolean,
-            series_id: (r.series_id ?? null) as string | null,
-            publish_at: (r.publish_at ?? null) as string | null,
-          })) as Track[]
-        setTracks(list)
-        setOrder(buildOrder(list))
+        setOrder(shuffle(data || []))
         setCurrent(0)
       } catch (e: any) {
         setErr(e.message || 'שגיאה בטעינת סיפורים')
@@ -78,22 +51,6 @@ export default function Drive() {
       }
     })()
   }, [])
-
-  // Register the reshuffle function with the global player when on this page
-  useEffect(() => {
-    if (player.setOnReshuffle) {
-      player.setOnReshuffle(() => reshuffle)
-    }
-    return () => { if (player.setOnReshuffle) player.setOnReshuffle(undefined) }
-  }, [player.setOnReshuffle, tracks])
-
-  // Register skipHeard state with the global player
-  useEffect(() => {
-    if (player.setSkipHeard) {
-      player.setSkipHeard(skipHeard)
-    }
-    // No cleanup needed, it's a state setter
-  }, [skipHeard, player.setSkipHeard])
 
   // --- Prayer Text-to-Speech ---
   const prayerText = `יְהִי רָצוֹן מִלְּפָנֶיךָ ה' אֱלֹהֵינוּ וֵאלֹהֵי אֲבוֹתֵינוּ, שֶׁתּוֹלִיכֵנוּ לְשָׁלוֹם וְתַצְעִידֵנוּ לְשָׁלוֹם. וְתִסְמְכֵנוּ לְשָׁלוֹם. וְתַדְרִיכֵנוּ בְּדֶרֶךְ יְשָׁרָה. וְתַגִּיעֵנוּ לִמְחוֹז חֶפְצֵנוּ לְחַיִּים וּלְשִׂמְחָה וּלְשָׁלוֹם, וְתַחְזִירֵנוּ לְשָׁלוֹם. וְתַצִּילֵנוּ מִכַּף כָּל אוֹיֵב וְאוֹרֵב וְלִסְטִים וְחַיּוֹת רָעוֹת בַּדֶּרֶךְ, וּמִכָּל מִינֵי פֻּרְעָנֻיּוֹת הַמִּתְרַגְּשׁוֹת לָבוֹא לָעוֹלָם. וְתִשְׁלַח בְּרָכָה בְּכָל מַעֲשֵׂה יָדֵינוּ, וְתִתְּנֵנוּ לְחֵן וּלְחֶסֶד וּלְרַחֲמִים בְּעֵינֶיךָ וּבְעֵינֵי כָל רוֹאֵינוּ. וְתִגְמְלֵנוּ חֲסָדִים טוֹבִים, וְתִשְׁמַע קוֹל תְּפִלָּתֵנוּ, כִּי אַתָּה שׁוֹמֵעַ תְּפִלַּת כָּל פֶּה. בָּרוּךְ אַתָּה ה', שׁוֹמֵעַ תְּפִלָּה:
@@ -127,68 +84,26 @@ export default function Drive() {
     return () => window.speechSynthesis?.cancel()
   }, [])
 
-  const currentTrack = order[current]
+  const currentTrack = order.length > 0 ? order[current] : null
 
   function playIndex(i: number) {
     setCurrent(i)
-    if (order.length) player.playQueue(order.map(t => ({ id: t.id, title: t.title, audio_url: t.audio_url })), i)
+    if (order.length > 0 && order[i]) player.playQueue(order, i)
   }
 
   function next() { if (order.length) playIndex((current + 1) % order.length) }
   function prev() { if (order.length) playIndex((current - 1 + order.length) % order.length) }
-  function reshuffle() { const o = buildOrder(tracks); setOrder(o); setCurrent(0); player.pause() }
+  function reshuffle() { setOrder(shuffle(order)); setCurrent(0); player.pause() }
 
   const playing = player.playing
-  
-  // Rebuild order when toggling skipHeard
-  useEffect(() => { setOrder(buildOrder(tracks)); setCurrent(0) }, [skipHeard])
 
-  // Determine if a track is completed by this user based on saved progress
-  function isCompleted(t: Track): boolean {
-    if (skipHeard && isHeard(t.id)) return true
-    const pg = player.getProgress(t.id)
-    if (!pg) return false
-    const dur = pg.dur || 0
-    const pos = pg.pos || 0
-    return dur > 0 && pos >= Math.max(0, dur - 2)
-  }
-
-  // Build a randomized order, skipping completed tracks, and grouping series together
-  function buildOrder(list: Track[]): Track[] {
-    // Group by series_id
-    const bySeries = new Map<string, Track[]>()
-    const singles: Track[] = []
-    for (const t of list) {
-      const sid = t.series_id || null
-      if (sid) {
-        const arr = bySeries.get(sid) || []
-        arr.push(t)
-        bySeries.set(sid, arr)
-      } else {
-        singles.push(t)
-      }
+  function shuffle<T>(arr: T[]): T[] {
+    const a = arr.slice()
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
     }
-
-    // Prepare blocks (arrays) keeping only unplayed episodes; keep series episodes ordered by publish_at ascending
-    const blocks: Track[][] = []
-    // singles
-    for (const t of singles) {
-      if (!isCompleted(t)) blocks.push([t])
-    }
-    // series groups
-    for (const arr of bySeries.values()) {
-      const sorted = arr.slice().sort((a, b) => {
-        const da = a.publish_at ? Date.parse(a.publish_at) : 0
-        const db = b.publish_at ? Date.parse(b.publish_at) : 0
-        return da - db
-      })
-      const unplayed = sorted.filter(t => !isCompleted(t))
-      if (unplayed.length > 0) blocks.push(unplayed)
-    }
-
-    // Shuffle the blocks; keep order within each block
-    const shuffledBlocks = shuffle(blocks)
-    return shuffledBlocks.flat()
+    return a
   }
 
   return (

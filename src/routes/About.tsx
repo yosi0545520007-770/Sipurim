@@ -1,4 +1,4 @@
-export default function About() {
+export function Component() {
   return (
     <section className="max-w-3xl mx-auto px-4 py-12" dir="rtl">
       <h1 className="text-3xl font-bold mb-8">אודות</h1>
