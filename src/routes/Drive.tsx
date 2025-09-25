@@ -217,7 +217,34 @@ export function Component() {
               הפעלה אקראית של סיפורים שטרם הושמעו. אם כל הסיפורים כבר הושמעו, הרשימה תתערבב מחדש.
             </p>
 
-            <div className="mt-4 flex items-center gap-3 flex-wrap"></div>
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <button onClick={prev} className="p-3 rounded-full hover:bg-gray-100" aria-label="הסיפור הקודם">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></svg>
+              </button>
+              <button
+                onClick={() => { if (!player.current && order.length) { playIndex(current) } else { player.toggle() } }}
+                className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg"
+                aria-label={playing ? 'השהה' : 'נגן'}
+              >
+                {playing ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect width="4" height="14" x="7" y="5"/><rect width="4" height="14" x="13" y="5"/></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                )}
+              </button>
+              <button onClick={next} className="p-3 rounded-full hover:bg-gray-100" aria-label="הסיפור הבא">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
+              </button>
+            </div>
+            <div className="mt-6 text-center">
+              <button
+                onClick={reshuffle}
+                className="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1 mx-auto"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" x2="21" y1="20" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" x2="21" y1="15" y2="21"/><line x1="4" x2="9" y1="4" y2="9"/></svg>
+                ערבב מחדש
+              </button>
+            </div>
           </div>
         </div>
         {/* Hide old layout for now */}

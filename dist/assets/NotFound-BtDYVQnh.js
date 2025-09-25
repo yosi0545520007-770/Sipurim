@@ -1,0 +1,1 @@
+import{j as e}from"./index-Ri0qBRCu.js";function t(){return e.jsxs("div",{className:"p-6 text-center",dir:"rtl",children:[e.jsx("h2",{children:"404 - דף לא נמצא"}),e.jsx("p",{children:"הדף שחיפשת לא קיים."}),e.jsx("a",{href:"/",className:"text-blue-600",children:"חזרה לדף הבית"})]})}export{t as Component,t as default};

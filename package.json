@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "up770": "git add . && git commit -m \"Deploy new version\" && git push && npm run build && firebase deploy"
   },
   "dependencies": {
     "@hebcal/core": "^5.10.1",
