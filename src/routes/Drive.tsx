@@ -41,8 +41,16 @@ export function Component() {
           .is('series_id', null)
           .not('audio_url', 'is', null)
           .neq('audio_url', '')
+
         if (error) throw error
-        setOrder(shuffle(data || []))
+
+        // Filter out stories that have already been heard
+        const unheardStories = (data || []).filter(story => !isHeard(story.id))
+
+        // If all stories have been heard, show all of them again as a fallback.
+        const storiesToPlay = unheardStories.length > 0 ? unheardStories : (data || [])
+
+        setOrder(shuffle(storiesToPlay))
         setCurrent(0)
       } catch (e: any) {
         setErr(e.message || 'שגיאה בטעינת סיפורים')
@@ -205,7 +213,9 @@ export function Component() {
           </div>
           <div className="flex flex-col justify-center">
             <h2 className="text-xl font-semibold mb-2">{currentTrack?.title || ''}</h2>
-            <p className="text-gray-700 leading-relaxed">הפעלה אקראית של סיפורים שטרם הושמעו עבורך. אם יש סיפור בהמשכים, נשמיע את כל הפרקים שלא הושמעו — ברצף.</p>
+            <p className="text-gray-700 leading-relaxed">
+              הפעלה אקראית של סיפורים שטרם הושמעו. אם כל הסיפורים כבר הושמעו, הרשימה תתערבב מחדש.
+            </p>
 
             <div className="mt-4 flex items-center gap-3 flex-wrap"></div>
           </div>
