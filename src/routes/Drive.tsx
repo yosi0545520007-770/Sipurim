@@ -187,13 +187,16 @@ export function Component() {
                 if (isPlaying) return null
                 return (
                   <button
-                    className="absolute inset-0 grid place-items-center bg-black/20"
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/30"
                     onClick={() => playIndex(current)}
                     aria-label="נגן סיפור"
                     title="נגן"
                   >
                     <span className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center">
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                    </span>
+                    <span className="text-white font-semibold bg-black/30 px-2 py-1 rounded">
+                      לחצו להאזנה לסיפור
                     </span>
                   </button>
                 )

@@ -100,6 +100,45 @@ function guessAudioMime(url: string): string {
   return 'audio/mp4'
 }
 
+const storyDateStyle = `
+  .react-datepicker__day.has-story {
+    background-color: #dcfce7; /* green-100 */
+    color: #166534; /* green-800 */
+    border-radius: 50%;
+    font-weight: bold;
+  }
+`
+
+// Resolve Hebrew date text (e.g., "י״ד אלול תשפ״ה") back to Gregorian Date for highlighting
+const hebrewToGregCache = new Map<string, Date | null>()
+function normalizeHebrewDateText(s: string) {
+  return stripNiqqud(String(s || ''))
+    .replace(/["'״׳]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+function fromHebrewTextToDate(s: string): Date | null {
+  const key = normalizeHebrewDateText(s)
+  if (hebrewToGregCache.has(key)) return hebrewToGregCache.get(key) || null
+  const now = new Date()
+  const startYear = now.getFullYear() - 5
+  const endYear = now.getFullYear() + 2
+  for (let y = startYear; y <= endYear; y++) {
+    const d = new Date(y, 0, 1)
+    while (d.getFullYear() === y) {
+      const heb = normalizeHebrewDateText(toHebrewText(d))
+      if (heb && heb === key) {
+        const match = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+        hebrewToGregCache.set(key, match)
+        return match
+      }
+      d.setDate(d.getDate() + 1)
+    }
+  }
+  hebrewToGregCache.set(key, null)
+  return null
+}
+
 /* --- Component --- */
 export function Component() {
   const [list, setList] = useState<Story[]>([])
@@ -183,6 +222,30 @@ export function Component() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerDate, setPickerDate] = useState<Date | null>(new Date())
   const [pickerPreview, setPickerPreview] = useState<string>('')
+
+  // Create a memoized list of dates that have stories
+  const storyDates = useMemo(() => {
+    const dates = new Set<string>()
+    list.forEach(story => { if (story.play_date) dates.add(story.play_date) })
+    const out: Date[] = []
+    for (const s of Array.from(dates)) {
+      try {
+        // נסיון לפרש כתאריך גריגוריאני סטנדרטי (YYYY-MM-DD וכו')
+        const d = new Date(s)
+        if (!isNaN(d.getTime())) {
+          out.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+          continue
+        }
+      } catch {}
+      // לא מצליחים לפרש טקסט עברי (כגון "י"ד אלול תשפ"ה") -> מדלגים בשקט
+    }
+    // Attempt to resolve Hebrew date texts to Gregorian for highlighting
+    for (const s of Array.from(dates)) {
+      const maybe = fromHebrewTextToDate(String(s))
+      if (maybe) out.push(maybe)
+    }
+    return out
+  }, [list])
 
   // State for bulk actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -436,6 +499,7 @@ export function Component() {
 
       {/* Hebrew Date Picker Modal */}
       {pickerOpen && (
+        <><style>{storyDateStyle}</style>
         <div className="fixed inset-0 bg-black/30 grid place-items-center z-[60]" onClick={()=>setPickerOpen(false)}>
           <div className="bg-white rounded-2xl p-4 w-full max-w-md" onClick={e=>e.stopPropagation()} dir="rtl">
             <div className="flex items-center justify-between mb-3">
@@ -449,6 +513,9 @@ export function Component() {
                 inline
                 calendarStartDay={0}
                 isClearable={false}
+                highlightDates={[{
+                  'has-story': storyDates,
+                }]}
                 showPopperArrow={false}
                 renderCustomHeader={({ date, decreaseMonth, increaseMonth, changeYear, changeMonth }) => {
                   const g = date as Date
@@ -492,7 +559,7 @@ export function Component() {
             </div>
           </div>
         </div>
-      )}
+        </>)}
     </section>
   )
 }

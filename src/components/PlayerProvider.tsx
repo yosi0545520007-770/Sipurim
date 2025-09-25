@@ -56,7 +56,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (!audioRef.current) {
       const el = document.createElement('audio')
       el.preload = 'none'
-      el.controls = true
+      // Hide native controls; we render our own custom bar
+      el.controls = false
       el.className = 'w-full'
       el.setAttribute('controlsList', 'nodownload noplaybackrate')
       el.oncontextmenu = (e) => { e.preventDefault() }
@@ -88,8 +89,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // --- New Player UI ---
   const [progress, setProgress] = useState({ pos: 0, dur: 0 })
+  // Volume UI removed for a cleaner, driving-friendly player
   const [volume, setVolume] = useState(1)
   const [muted, setMuted] = useState(false)
+  const [liked, setLiked] = useState(false)
 
   useEffect(() => {
     const el = ensureAudio()
@@ -120,6 +123,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     el.volume = parseFloat(e.target.value)
   }
 
+  // Skip within current track by delta seconds (e.g., -15 / +15)
+  function skipBy(deltaSec: number) {
+    const el = ensureAudio()
+    const dur = isFinite(el.duration) ? el.duration : 0
+    const next = Math.max(0, Math.min((el.currentTime || 0) + deltaSec, dur || (el.currentTime || 0)))
+    try { el.currentTime = next } catch {}
+  }
+
   function formatTime(sec: number): string {
     if (!isFinite(sec)) return '00:00'
     const s = Math.floor(sec % 60).toString().padStart(2, '0')
@@ -133,17 +144,35 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return (
       <div dir="rtl" className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800 text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-4 py-3">
-          {/* Top row: Title and Time */}
-          <div className="flex items-center justify-between text-sm mb-1">
-            <div className="font-semibold truncate">
-              {current.title}
-              {current.series_id && queue.length > 1 && (
-                <span className="text-gray-400 font-normal mr-2">({`פרק ${index + 1} מתוך ${queue.length}`})</span>
+          {/* Like | Title | Close (Spotify-like top row) */}
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setLiked(v => !v)} className="p-2 rounded-full hover:bg-gray-700" aria-label={liked ? 'הסר אהבתי' : 'סמן אהבתי'}>
+              {liked ? (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-pink-400"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.61C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><path d="M20.8 8.5C20.8 6 18.8 4 16.3 4c-1.7 0-3.4 1-4.3 2.6C11.1 5 9.4 4 7.7 4 5.2 4 3.2 6 3.2 8.5c0 3.8 3.4 6.9 8.6 11.6 5.2-4.7 8.6-7.8 8.6-11.6z"/></svg>
               )}
+            </button>
+            <div className="text-center flex-1 px-2" aria-live="polite">
+
+              <div className="text-xs text-gray-300">מנגן כעת</div>
+
+              <div className="font-semibold truncate text-base text-white">{current.title}</div>
+
+              {current.series_id && queue.length > 1 && (
+              <div className="text-xs text-gray-400 mt-0.5">
+                {`פרק ${index + 1} מתוך ${queue.length}`}
+              </div>
+            )}
+
             </div>
-            <div>
-              <span>{formatTime(progress.pos)}</span> / <span>{formatTime(progress.dur)}</span>
-            </div>
+
+
+            <button onClick={closePlayer} className="p-2 rounded-full hover:bg-gray-700" aria-label="סגירה">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
           {/* Progress Bar */}
@@ -154,42 +183,67 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             value={progress.pos || 0}
             onClick={seek}
             onChange={(e) => { ensureAudio().currentTime = parseFloat(e.target.value) }}
-            className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-white"
           />
+          <div className="flex items-center justify-between text-xs text-gray-300 mt-1">
+            <span>{formatTime(progress.pos)}</span>
+            <span>{formatTime(progress.dur)}</span>
+          </div>
 
           {/* Bottom row: Controls */}
-          <div className="flex items-center justify-between mt-2">
-            {/* Volume */}
-            <div className="flex items-center gap-2 w-32">
-              <button onClick={() => { ensureAudio().muted = !muted }}>
-                {muted || volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+          <div className="flex items-center justify-between mt-3">
+            {/* Left side: Shuffle + Share */}
+            <div className="w-32 flex items-center gap-2">
+              <button onClick={onReshuffle} className="p-2 rounded-full hover:bg-gray-700" aria-label="ערבוב">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 16l5-5 4 4 5-5"/><path d="M14 7h7v7"/></svg>
               </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={muted ? 0 : volume}
-                onChange={changeVolume}
-                className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
+              <button onClick={() => { try { if ((navigator as any).share) { (navigator as any).share({ title: current.title, url: window.location.href }).catch(()=>{}) } else if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href).then(()=>alert('הקישור הועתק')) } } catch {} }} className="p-2 rounded-full hover:bg-gray-700" aria-label="שיתוף">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51L8.59 10.49"/></svg>
+              </button>
             </div>
 
-            {/* Main Controls */}
-            <div className="flex items-center gap-4">
-              <button onClick={prev} className="p-2 rounded-full hover:bg-gray-700"><svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 transform scale-x-[-1]"><path d="M8 5v14l11-7z" /></svg></button>
-              <button onClick={toggle} className="w-12 h-12 rounded-full bg-blue-600 grid place-items-center">
-                {playing ? <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg> : <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path d="M8 5v14l11-7z" /></svg>}
-              </button>
-              <button onClick={next} className="p-2 rounded-full hover:bg-gray-700"><svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M8 5v14l11-7z" /></svg></button>
-            </div>
-
-            {/* Right side controls (Shuffle) */}
-            <div className="w-32 flex items-center justify-end gap-2">
-              <button onClick={closePlayer} className="p-2 rounded-full hover:bg-gray-700" title="סגור נגן">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+            {/* Main Controls — driving friendly */}
+            <div className="flex items-center gap-5">
+              {/* Back 15s */}
+              <button
+                onClick={prev}
+                className="p-3 rounded-full hover:bg-gray-700"
+                aria-label="הקודם"
+                title="הקודם"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+                  <path d="M12 5v3l-4-4 4-4v3c5.06 0 9 3.94 9 9s-3.94 9-9 9-9-3.94-9-9h2c0 3.86 3.14 7 7 7s7-3.14 7-7-3.14-7-7-7z"/>
+                  <path d="M10.5 9.5v5h1.5v-2.8l1.6 2.8h1.7l-1.9-3.1 1.8-1.9h-1.7l-1.5 1.6V9.5z"/>
                 </svg>
+              </button>
+
+              {/* Play/Pause */}
+              <button onClick={toggle} className="w-16 h-16 rounded-full bg-white text-gray-900 grid place-items-center">
+                {playing ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9"><path d="M8 5v14l11-7z" /></svg>
+                )}
+              </button>
+
+              {/* Forward 15s */}
+              <button
+                onClick={next}
+                className="p-3 rounded-full hover:bg-gray-700"
+                aria-label="הבא"
+                title="הבא"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+                  <path d="M12 5v3l4-4-4-4v3c-5.06 0-9 3.94-9 9s3.94 9 9 9 9-3.94 9-9h-2c0 3.86-3.14 7-7 7s-7-3.14-7-7 3.14-7 7-7z"/>
+                  <path d="M12.1 9.5v5h1.5v-2.8l1.6 2.8h1.7l-1.9-3.1 1.8-1.9h-1.7l-1.5 1.6V9.5z"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Right side controls (Queue) */}
+            <div className="w-32 flex items-center justify-end gap-2">
+              <button onClick={() => alert(`בתור ${queue.length} פריטים`)} className="p-2 rounded-full hover:bg-gray-700" aria-label="תור">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="12" y2="18"/></svg>
               </button>
               {onReshuffle && (
                 <>

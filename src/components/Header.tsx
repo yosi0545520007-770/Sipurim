@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { listMemorials } from '@/lib/memorials'
+import { listMemorials, type Memorial } from '@/lib/memorials'
 import { HDate } from '@hebcal/core'
 import { Menu, X, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,7 +14,7 @@ export default function Header() {
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [hebDate, setHebDate] = useState<string>('')
   const [user, setUser] = useState<any>(null)
-  const [memorialName, setMemorialName] = useState<string>('')
+  const [memorial, setMemorial] = useState<Memorial | null>(null)
   const [open, setOpen] = useState(false)
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -55,12 +55,26 @@ export default function Header() {
       const { data } = await listMemorials()
       if (data && data.length > 0) {
         const randomHonoree = data[Math.floor(Math.random() * data.length)]
-        setMemorialName(randomHonoree.honoree)
+        setMemorial(randomHonoree)
       }
     })()
   }, [])
 
+  const memorialText = useMemo(() => {
+    if (!memorial) return ''
+    const parents: string[] = []
+    if (memorial.father_name) parents.push(memorial.father_name)
+    if (memorial.mother_name) parents.push(memorial.mother_name)
+    if (parents.length > 0) {
+      const relation = memorial.gender === 'female' ? 'בת' : 'בן'
+      const joined = parents[0] + (parents.length > 1 ? ' ו' + parents[1] : '')
+      return `${memorial.honoree} ${relation} ${joined}`
+    }
+    return memorial.honoree
+  }, [memorial])
+
   const links = [
+    { href: '/', label: 'דף הבית' },
     { href: '/about', label: 'אודות' },
     { href: '/stories', label: 'סיפורים' },
     { href: '/drive', label: 'סיפורים ברצף לנסיעה' },
@@ -207,11 +221,13 @@ export default function Header() {
 
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <span>{hebDate}</span>
-            {memorialName && <span className="text-gray-500">|</span>}
-            {memorialName && <span>לעילוי נשמת: <span className="font-semibold">{memorialName}</span></span>}
+            {memorialText && <span className="text-gray-500">|</span>}
+            {memorialText && <span>לעילוי נשמת: <span className="font-semibold">{memorialText}</span></span>}
           </div>
         </div>
       </div>
     </header>
   )
 }
+
+

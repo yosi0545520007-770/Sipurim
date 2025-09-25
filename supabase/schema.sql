@@ -50,6 +50,8 @@ create table if not exists public.memorials (
   event_date date,
   created_at timestamptz default now()
 );
+-- Ensure optional columns used by the app exist
+alter table if exists public.memorials add column if not exists last_name text;
 create table if not exists public.faq (
   id bigint generated always as identity primary key,
   question text not null,

@@ -205,10 +205,11 @@ export function Component() {
                         e.stopPropagation()
                         player.playTrack({ id: story.id, title: story.title, audio_url: story.audio_url! })
                       }}
-                      className="absolute inset-0 grid place-items-center bg-black/20"
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/35 text-white text-sm font-medium text-center p-3"
                       aria-label={`נגן את ${story.title}`}
                     >
                       <span className="w-12 h-12 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-0.5" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg></span>
+                      <span className="px-3 py-1 rounded-full bg-black/60 text-xs sm:text-sm">לחצו להאזנה לסיפור</span>
                     </button>
                   )}
                 </div>

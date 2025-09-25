@@ -97,7 +97,7 @@ export function Component() {
                 ) : (
                   <div className="w-full h-full grid place-items-center text-xs text-gray-400">ללא תמונה</div>
                 )}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-3 text-white text-sm font-medium text-center p-4">
                   <button
                     onClick={() => playSeries(s.id)}
                     className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center disabled:opacity-50 disabled:cursor-wait"
@@ -111,6 +111,7 @@ export function Component() {
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
                     )}
                   </button>
+                  <span className="px-3 py-1 rounded-full bg-black/60 text-xs sm:text-sm">לחצו להאזנה לסיפור</span>
                 </div>
               </div>
  
