@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase' // או ../lib/supabase אם אין alias
 import { usePlayer } from '@/components/PlayerProvider'
-import { List, X, Loader2 } from 'lucide-react'
+import { List } from 'lucide-react'
 
 type SeriesRow = {
   id: string
@@ -17,29 +17,6 @@ type StoryTrack = {
   audio_url: string
   series_id: string
   series_title?: string
-}
-
-function SeriesCardSkeleton() {
-  return (
-    <article className="group relative rounded-2xl border bg-white overflow-hidden shadow-sm flex flex-col animate-pulse">
-      <div className="w-full h-[170px] bg-gray-200" />
-      <div className="p-4 space-y-2 flex-1 flex flex-col min-h-[150px]">
-        <h3 className="text-lg font-semibold">
-          <div className="h-5 w-3/4 rounded bg-gray-200 animate-pulse" />
-        </h3>
-        <p className="text-sm text-gray-600 space-y-2">
-          <div className="h-4 rounded bg-gray-200 animate-pulse" />
-          <div className="h-4 w-5/6 rounded bg-gray-200 animate-pulse" />
-        </p>
-        <div className="pt-2 mt-auto">
-          <div className="inline-flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-gray-200" />
-            <div className="h-5 w-20 rounded bg-gray-200" />
-          </div>
-        </div>
-      </div>
-    </article>
-  )
 }
 
 export function Component() {
@@ -106,63 +83,69 @@ export function Component() {
     <section className="container mx-auto px-4 py-10" dir="rtl">
       <h1 className="text-2xl font-bold mb-4">סיפורים בהמשכים</h1>
 
+      {loading && <div className="text-gray-500">טוען…</div>}
       {err && <div className="rounded-lg bg-red-50 text-red-700 p-3 mb-4">{err}</div>}
 
-      {loading ? (
-        <div className="grid md:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => <SeriesCardSkeleton key={i} />)}
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          {series.map((s) => {
-            const isCurrentPlaying = player.queue.some(track => track.id.startsWith(s.id)) && player.playing;
-   
-            return (
-              <article key={s.id} className="group relative rounded-2xl border bg-white overflow-hidden shadow-sm transition-shadow hover:shadow-md flex flex-col">
-                <div className="relative w-full h-[170px] overflow-hidden bg-gray-100 shrink-0">
-                  {s.cover_url || logoUrl ? (
-                    <img
-                      src={s.cover_url || logoUrl}
-                      alt={s.title}
-                      className={`w-full h-full ${s.cover_url ? 'object-cover' : 'object-contain p-4'}`}
-                      loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full grid place-items-center text-xs text-gray-400">ללא תמונה</div>
-                  )}
+      <div className="grid md:grid-cols-3 gap-6">
+        {series.map((s) => {
+          const isCurrentPlaying = player.queue.some(track => track.id.startsWith(s.id)) && player.playing;
+ 
+          return (
+            <article key={s.id} className="group relative rounded-2xl border bg-white overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+              <div className="relative w-full aspect-[16/9] overflow-hidden bg-gray-100">
+                {s.cover_url || logoUrl ? (
+                  <img
+                    src={s.cover_url || logoUrl}
+                    alt={s.title}
+                    className={`w-full h-full ${s.cover_url ? 'object-cover' : 'object-contain p-4'}`}
+                    loading="lazy" />
+                ) : (
+                  <div className="w-full h-full grid place-items-center text-xs text-gray-400">ללא תמונה</div>
+                )}
+                {isCurrentPlaying ? (
+                  <button
+                    onClick={() => player.toggle()}
+                    className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-3 text-white"
+                    aria-label="השהה"
+                  >
+                    <span className="w-14 h-14 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><rect width="4" height="14" x="7" y="5"/><rect width="4" height="14" x="13" y="5"/></svg>
+                    </span>
+                  </button>
+                ) : (
                   <button
                     onClick={() => playSeries(s.id, s.title)}
-                    className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-3 text-white text-sm font-medium text-center p-4 disabled:opacity-50 disabled:cursor-wait"
+                    className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-3 text-white text-sm font-medium text-center p-4 disabled:opacity-50 disabled:cursor-wait group-hover:bg-black/40 transition-colors"
                     aria-label={`נגן את סדרת ${s.title}`}
-                    title={`נגן את סדרת ${s.title}`}
                     disabled={playingSeriesId === s.id}
                   >
                     <span className="px-3 py-1 rounded-full bg-black/60 text-xs sm:text-sm">לחצו להאזנה לסדרה</span>
                   </button>
+                )}
+              </div>
+ 
+              <div className="p-4 space-y-2">
+                <h3 className="text-lg font-semibold">
+                  <a href={`/stories?series_id=${s.id}`} className="hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                    {s.title}
+                  </a>
+                </h3>
+                <p className="text-sm text-gray-600 line-clamp-3">{s.description || '—'}</p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => player.openSeriesModal(s.id, s.title)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+                    aria-label={`הצג פרקים עבור ${s.title}`}
+                  >
+                    <List className="w-4 h-4" />
+                    <span>הצג פרקים</span>
+                  </button>
                 </div>
-   
-                <div className="p-4 space-y-2 flex-1 flex flex-col min-h-[150px]">
-                  <h3 className="text-lg font-semibold">
-                    <a href={`/stories?series_id=${s.id}`} className="hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                      {s.title}
-                    </a>
-                  </h3>
-                  <p className="text-sm text-gray-600 line-clamp-3">{s.description || '—'}</p>
-                  <div className="pt-2 mt-auto">
-                    <button 
-                      onClick={() => player.openSeriesModal?.(s.id, s.title)} 
-                      disabled={!player.openSeriesModal}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                    >
-                      <List className="w-4 h-4" />
-                      <span>הצג פרקים</span>
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      )}
+              </div>
+            </article>
+          )
+        })}
+      </div>
 
       {!loading && !err && series.length === 0 && (
         <div className="mt-4 text-gray-500">אין סדרות להצגה כרגע.</div>

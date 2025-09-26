@@ -27,11 +27,13 @@ type PlayerContextType = {
   resume: () => void
   prev: () => void
   next: () => void
+  playNextInQueue: (track: Track) => void
   getProgress: (id: string) => Progress | null
   onReshuffle?: () => void
   setOnReshuffle: (fn: (() => void) | undefined) => void
   skipHeard?: boolean
   setSkipHeard?: (val: boolean) => void
+  openDrivePlaylistModal: () => void
   openSeriesModal: (seriesId: string, seriesTitle: string) => void
 }
 
@@ -52,6 +54,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const current = queue[index] || null
   const [onReshuffle, setOnReshuffle] = useState<(() => void) | undefined>(undefined)
   const [skipHeard, setSkipHeard] = useState<boolean | undefined>(undefined)
+  const [showDriveModal, setShowDriveModal] = useState(false)
   const [modalSeriesInfo, setModalSeriesInfo] = useState<{ id: string; title: string } | null>(null)
 
   // progress map in localStorage
@@ -127,21 +130,41 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return progressMap[id] || null
   }, [progressMap])
 
+  const playNextInQueue = useCallback((track: Track) => {
+    setQueue(currentQueue => {
+      if (currentQueue.length === 0 || !current) {
+        // If queue is empty or nothing is playing, just start a new queue with this track.
+        return [track];
+      }
+      const newQueue = [...currentQueue];
+      // Insert the track after the current one.
+      newQueue.splice(index + 1, 0, track);
+      return newQueue;
+    });
+  }, [index, current]);
+
+  const openDrivePlaylistModal = useCallback(() => {
+    setShowDriveModal(true)
+  }, [])
+
   const openSeriesModal = useCallback((seriesId: string, seriesTitle: string) => {
     setModalSeriesInfo({ id: seriesId, title: seriesTitle })
   }, [])
 
   const value = useMemo<PlayerContextType>(() => ({
     queue, index, current, playing,
-    playQueue, playTrack, closePlayer, playIndex,
+    playQueue, playTrack, closePlayer, playIndex, openDrivePlaylistModal, playNextInQueue,
     toggle, pause, resume, prev, next,
     getProgress, openSeriesModal,
     onReshuffle, setOnReshuffle, skipHeard, setSkipHeard
-  }), [queue, index, current, playing, playQueue, playTrack, closePlayer, playIndex, toggle, pause, resume, prev, next, getProgress, openSeriesModal, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
+  }), [queue, index, current, playing, playQueue, playTrack, closePlayer, playIndex, openDrivePlaylistModal, playNextInQueue, toggle, pause, resume, prev, next, getProgress, openSeriesModal, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
 
   return (
     <PlayerContext.Provider value={value}>
       <style>{`
+        html {
+          overflow-y: scroll;
+        }
         .rhap_container {
           background-color: #2d3748; /* bg-gray-800 */
           box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
@@ -170,6 +193,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           seriesTitle={modalSeriesInfo.title}
           onClose={() => setModalSeriesInfo(null)}
         />
+      )}
+      {showDriveModal && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 grid place-items-center p-4"
+          onClick={() => setShowDriveModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-bold">רשימת השמעה לנסיעה</h2>
+              <button onClick={() => setShowDriveModal(false)} className="p-1 rounded-full hover:bg-gray-100"><X className="w-5 h-5" /></button>
+            </header>
+            <div className="p-4 overflow-y-auto">
+              <ul className="space-y-2">
+                {queue.map((story, idx) => (
+                  <li key={story.id}>
+                    <button onClick={() => { playIndex(idx); setShowDriveModal(false); }} className="w-full text-right p-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3">
+                      <span className="text-sm text-gray-500">{idx + 1}.</span>
+                      <span className={`font-medium ${index === idx ? 'text-blue-600' : ''}`}>{story.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
       )}
       {current && (
         <div dir="rtl" className="fixed bottom-0 left-0 right-0 z-50">
@@ -217,8 +268,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               <button key="share" onClick={() => { try { if ((navigator as any).share) { (navigator as any).share({ title: current.title, url: window.location.href }).catch(()=>{}) } else if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href).then(()=>alert('הקישור הועתק')) } } catch {} }} className="rhap_button-clear" aria-label="שיתוף">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51L8.59 10.49"/></svg>
               </button>,
-              current.series_id && current.series_title ? (
+              (current.series_id && current.series_title) ? (
                 <button key="series-list" onClick={() => openSeriesModal(current.series_id!, current.series_title!)} className="rhap_button-clear" aria-label="פרקי הסדרה">
+                  <List className="w-5 h-5" />
+                </button>
+              ) : (onReshuffle && queue.length > 1) ? (
+                // This is likely "Drive Mode" if reshuffle is available and it's not a series
+                <button key="drive-list" onClick={openDrivePlaylistModal} className="rhap_button-clear" aria-label="רשימת השמעה">
                   <List className="w-5 h-5" />
                 </button>
               ) : <div key="series-list-placeholder" className="w-5" />,

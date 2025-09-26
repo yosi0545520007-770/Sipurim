@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from '@/components/PlayerProvider'
 import { useHeard } from '@/lib/heard'
+import { List, X } from 'lucide-react'
 
 type Track = {
   id: string
@@ -29,7 +30,6 @@ export function Component() {
   const [err, setErr] = useState<string | null>(null)
   const [showPrayer, setShowPrayer] = useState<boolean>(false)
   const [isReadingPrayer, setIsReadingPrayer] = useState<boolean>(false)
-
   useEffect(() => {
     ;(async () => {
       try {
@@ -92,16 +92,15 @@ export function Component() {
     return () => window.speechSynthesis?.cancel()
   }, [])
 
-  const currentTrack = order.length > 0 ? order[current] : null
-
   function playIndex(i: number) {
     setCurrent(i)
     if (order.length > 0 && order[i]) player.playQueue(order, i)
   }
 
-  function next() { if (order.length) playIndex((current + 1) % order.length) }
-  function prev() { if (order.length) playIndex((current - 1 + order.length) % order.length) }
-  function reshuffle() { setOrder(shuffle(order)); setCurrent(0); player.pause() }
+  const next = useCallback(() => { if (order.length) playIndex((current + 1) % order.length) }, [current, order.length, playIndex])
+  const prev = useCallback(() => { if (order.length) playIndex((current - 1 + order.length) % order.length) }, [current, order.length, playIndex])
+  const reshuffle = useCallback(() => { setOrder(prevOrder => shuffle(prevOrder)); setCurrent(0); player.pause() }, [player])
+  useEffect(() => { player.setOnReshuffle(() => reshuffle) }, [player, reshuffle])
 
   const playing = player.playing
 
@@ -113,6 +112,8 @@ export function Component() {
     }
     return a
   }
+
+  const currentTrack = order.length > 0 ? order[current] : null
 
   return (
     <section className="p-6 max-w-6xl mx-auto" dir="rtl">
@@ -213,6 +214,13 @@ export function Component() {
             <p className="text-gray-700 leading-relaxed">
               הפעלה אקראית של סיפורים שטרם הושמעו. אם כל הסיפורים כבר הושמעו, הרשימה תתערבב מחדש.
             </p>
+
+            <div className="pt-4">
+              <button onClick={player.openDrivePlaylistModal} className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+                <List className="w-4 h-4" />
+                <span>הצג רשימת השמעה</span>
+              </button>
+            </div>
 
             <div className="mt-6 flex items-center justify-center gap-4">
               <button onClick={prev} className="p-3 rounded-full hover:bg-gray-100" aria-label="הסיפור הקודם">

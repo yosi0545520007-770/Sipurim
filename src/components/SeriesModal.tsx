@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { usePlayer } from './PlayerProvider'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, ListPlus } from 'lucide-react'
 
 type StoryTrack = {
   id: string
@@ -62,10 +62,21 @@ export function SeriesModal({ seriesId, seriesTitle, onClose }: SeriesModalProps
         <div className="p-4 overflow-y-auto">
           {loading && <div className="flex items-center justify-center gap-2 text-gray-500"><Loader2 className="w-5 h-5 animate-spin" /><span>טוען פרקים...</span></div>}
           {!loading && stories.map((story, index) => (
-            <button key={story.id} onClick={() => playFromModal(index)} className="w-full text-right p-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3">
-              <span className="text-sm text-gray-500">{index + 1}.</span>
-              <span className={`font-medium ${player.current?.id === story.id ? 'text-blue-600' : ''}`}>{story.title}</span>
-            </button>
+            <li key={story.id} className={`group w-full text-right p-3 rounded-lg transition-colors flex items-center justify-between gap-3 ${player.current?.id === story.id ? 'bg-blue-50' : 'hover:bg-gray-100'}`}>
+              <button onClick={() => playFromModal(index)} className="flex items-center gap-3 flex-1">
+                  <span className="text-sm text-gray-500">{index + 1}.</span>
+                  <span className={`font-medium text-right ${player.current?.id === story.id ? 'text-blue-600' : ''}`}>{story.title}</span>
+              </button>
+              {player.current && player.current.id !== story.id && (
+                <button
+                  onClick={() => player.playNextInQueue(story)}
+                  className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="נגן הבא בתור"
+                >
+                  <ListPlus className="w-5 h-5" />
+                </button>
+              )}
+            </li>
           ))}
           {!loading && stories.length === 0 && <p className="text-gray-500 text-center">לא נמצאו פרקים לסדרה זו.</p>}
         </div>
