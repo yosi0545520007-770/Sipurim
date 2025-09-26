@@ -215,10 +215,10 @@ export function Component() {
   function startEdit(item: Memorial) {
     setEditingId(item.id)
     // Coerce potential array values to strings for safe editing
-    const honoree = sanitizeName(item.honoree || '')
-    const lastName = sanitizeName((item as any).last_name || '')
-    const father = sanitizeName(item.father_name || '')
-    const mother = sanitizeName(item.mother_name || '')
+    const honoree = sanitizeName(Array.isArray(item.honoree) ? item.honoree[0] : item.honoree)
+    const lastName = sanitizeName(Array.isArray((item as any).last_name) ? (item as any).last_name[0] : (item as any).last_name)
+    const father = sanitizeName(Array.isArray(item.father_name) ? item.father_name[0] : item.father_name)
+    const mother = sanitizeName(Array.isArray(item.mother_name) ? item.mother_name[0] : item.mother_name)
     const gender = item.gender || ''
     setFormFatherName(father)
     setFormHonoree(honoree)
@@ -232,9 +232,9 @@ export function Component() {
   function startInlineEdit(item: Memorial) {
     setInlineEditingId(item.id)
     setInlineFormData({
-      honoree: sanitizeName(item.honoree || ''),
-      father_name: sanitizeName(item.father_name || ''),
-      mother_name: sanitizeName(item.mother_name || ''),
+      honoree: sanitizeName(Array.isArray(item.honoree) ? item.honoree[0] : item.honoree),
+      father_name: sanitizeName(Array.isArray(item.father_name) ? item.father_name[0] : item.father_name),
+      mother_name: sanitizeName(Array.isArray(item.mother_name) ? item.mother_name[0] : item.mother_name),
     })
   }
 
@@ -341,7 +341,12 @@ export function Component() {
           const honoreeName = sanitizeName(memorial.honoree || '').split(' ')[0]
           const guessedGender = guessGenderFromName(honoreeName)
           if (guessedGender) {
-            updates.push({ ...memorial, gender: [guessedGender] as any })
+            updates.push({
+              ...memorial,
+              father_name: memorial.father_name || ['אברהם'],
+              mother_name: memorial.mother_name || ['שרה'],
+              gender: [guessedGender],
+            } as Memorial)
           }
         }
       }

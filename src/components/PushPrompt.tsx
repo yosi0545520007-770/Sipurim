@@ -44,6 +44,7 @@ export default function PushPrompt() {
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       })
 
+      // שמירה לשרת (תעדכן ל-API שלך)
       await fetch('/api/save-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
