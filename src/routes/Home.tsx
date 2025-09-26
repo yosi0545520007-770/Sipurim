@@ -99,19 +99,6 @@ export function Component() {
           ))}
         </section>
 
-        <section className="rounded-3xl bg-white shadow-sm border border-gray-100 p-8 space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900">האנשים מאחורי האתר</h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            {TEAM.map((member) => (
-              <div key={member.name} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
-                <p className="text-gray-700 mt-2">{member.description}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{STORY_SUMMARY}</p>
-        </section>
-
         <section className="rounded-3xl bg-blue-50 border border-blue-100 p-8 text-center space-y-4">
           <h2 className="text-2xl font-bold text-blue-800">נתקלים בקשיים בגלישה באתר?</h2>
           <p className="text-blue-900 max-w-3xl mx-auto">
@@ -143,5 +130,3 @@ export function Component() {
     </section>
   )
 }
-
-
