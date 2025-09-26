@@ -2,8 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { markHeard } from '@/lib/heard'
 import AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
 import 'react-h5-audio-player/lib/styles.css'
+import { SeriesModal } from './SeriesModal'
+import { List } from 'lucide-react'
 
-type Track = { id: string; title: string; audio_url: string; series_id?: string | null }
+type Track = { id: string; title: string; audio_url: string; series_id?: string | null; series_title?: string | null }
 
 type Progress = {
   pos: number
@@ -30,6 +32,7 @@ type PlayerContextType = {
   setOnReshuffle: (fn: (() => void) | undefined) => void
   skipHeard?: boolean
   setSkipHeard?: (val: boolean) => void
+  openSeriesModal: (seriesId: string, seriesTitle: string) => void
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null)
@@ -49,6 +52,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const current = queue[index] || null
   const [onReshuffle, setOnReshuffle] = useState<(() => void) | undefined>(undefined)
   const [skipHeard, setSkipHeard] = useState<boolean | undefined>(undefined)
+  const [modalSeriesInfo, setModalSeriesInfo] = useState<{ id: string; title: string } | null>(null)
 
   // progress map in localStorage
   const [progressMap, setProgressMap] = useState<Record<string, Progress>>(() => loadAllProgress())
@@ -123,13 +127,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return progressMap[id] || null
   }, [progressMap])
 
+  const openSeriesModal = useCallback((seriesId: string, seriesTitle: string) => {
+    setModalSeriesInfo({ id: seriesId, title: seriesTitle })
+  }, [])
+
   const value = useMemo<PlayerContextType>(() => ({
     queue, index, current, playing,
     playQueue, playTrack, closePlayer, playIndex,
     toggle, pause, resume, prev, next,
-    getProgress,
+    getProgress, openSeriesModal,
     onReshuffle, setOnReshuffle, skipHeard, setSkipHeard
-  }), [queue, index, current, playing, playQueue, playTrack, closePlayer, playIndex, toggle, pause, resume, prev, next, getProgress, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
+  }), [queue, index, current, playing, playQueue, playTrack, closePlayer, playIndex, toggle, pause, resume, prev, next, getProgress, openSeriesModal, onReshuffle, setOnReshuffle, skipHeard, setSkipHeard])
 
   return (
     <PlayerContext.Provider value={value}>
@@ -156,6 +164,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         }
       `}</style>
       {children}
+      {modalSeriesInfo && (
+        <SeriesModal
+          seriesId={modalSeriesInfo.id}
+          seriesTitle={modalSeriesInfo.title}
+          onClose={() => setModalSeriesInfo(null)}
+        />
+      )}
       {current && (
         <div dir="rtl" className="fixed bottom-0 left-0 right-0 z-50">
           <AudioPlayer
@@ -202,6 +217,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               <button key="share" onClick={() => { try { if ((navigator as any).share) { (navigator as any).share({ title: current.title, url: window.location.href }).catch(()=>{}) } else if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href).then(()=>alert('הקישור הועתק')) } } catch {} }} className="rhap_button-clear" aria-label="שיתוף">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51L8.59 10.49"/></svg>
               </button>,
+              current.series_id && current.series_title ? (
+                <button key="series-list" onClick={() => openSeriesModal(current.series_id!, current.series_title!)} className="rhap_button-clear" aria-label="פרקי הסדרה">
+                  <List className="w-5 h-5" />
+                </button>
+              ) : <div key="series-list-placeholder" className="w-5" />,
               onReshuffle ? <button key="shuffle" onClick={onReshuffle} className="rhap_button-clear" aria-label="ערבוב">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.8-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.4c1.3 0 2.5.6 3.3 1.7l6.1 8.6c.8 1.1 2 1.7 3.3 1.7H22"/><path d="m18 22-4-4 4-4"/></svg>
               </button> : <div key="shuffle-placeholder" className="w-5" />,

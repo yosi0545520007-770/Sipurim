@@ -1,69 +1,33 @@
 import { useEffect, useState } from 'react'
+import { usePush } from '@/lib/usePush'
 
 const SEEN_KEY = 'push_prompt_seen'
-const SUB_KEY  = 'push_prompt_subscribed'
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
-  return outputArray
-}
 
 export default function PushPrompt() {
-  const [supported, setSupported] = useState(false)
   const [show, setShow] = useState(false)
+  const { isSupported, permission, isSubscribed, subscribe, loading } = usePush()
 
   useEffect(() => {
-    const sup = 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined'
-    setSupported(sup)
-
-    const alreadyGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted'
     const seen = localStorage.getItem(SEEN_KEY) === '1'
-    const subscribed = localStorage.getItem(SUB_KEY) === '1'
-
-    if (sup && !alreadyGranted && !seen && !subscribed) {
+    // Show prompt if supported, user hasn't made a choice, hasn't seen the prompt, and isn't subscribed.
+    if (!loading && isSupported && permission === 'default' && !isSubscribed && !seen) {
       const t = setTimeout(() => setShow(true), 800)
       return () => clearTimeout(t)
     }
-  }, [])
+  }, [isSupported, permission, isSubscribed, loading])
 
   async function onApprove() {
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { localStorage.setItem(SEEN_KEY, '1'); setShow(false); return }
-
-      const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
-      if (!publicKey) { alert('חסר VITE_VAPID_PUBLIC_KEY ב-.env.local'); localStorage.setItem(SEEN_KEY, '1'); setShow(false); return }
-
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      })
-
-      // שמירה לשרת (תעדכן ל-API שלך)
-      await fetch('/api/save-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-      })
-
-      localStorage.setItem(SUB_KEY, '1')
-      localStorage.setItem(SEEN_KEY, '1')
-      setShow(false)
-    } catch (e) {
-      console.error(e)
-      localStorage.setItem(SEEN_KEY, '1')
-      setShow(false)
-    }
+    await subscribe()
+    localStorage.setItem(SEEN_KEY, '1')
+    setShow(false)
   }
 
-  function onDismiss() { localStorage.setItem(SEEN_KEY, '1'); setShow(false) }
+  function onDismiss() {
+    localStorage.setItem(SEEN_KEY, '1')
+    setShow(false)
+  }
 
-  if (!supported || !show) return null
+  if (!show) return null
 
   return (
     <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[60]">

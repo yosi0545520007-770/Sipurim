@@ -173,8 +173,8 @@ export function Component() {
             >
               <article>
                 {(done || started) && (
-                  <span className={`absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-full z-10 ${done ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
-                    {done ? 'נשמע' : 'בתהליך'}
+                  <span className={`absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-full z-10 ${done ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'} animate-in fade-in zoom-in-95`}>
+                    {done ? 'שמעתי את הסיפור' : 'אני באמצע הסיפור'}
                   </span>
                 )}
                 {user && (
@@ -208,7 +208,6 @@ export function Component() {
                       className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/35 text-white text-sm font-medium text-center p-3"
                       aria-label={`נגן את ${story.title}`}
                     >
-                      <span className="w-12 h-12 rounded-full bg-gray-800/60 text-white backdrop-blur flex items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-0.5" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg></span>
                       <span className="px-3 py-1 rounded-full bg-black/60 text-xs sm:text-sm">לחצו להאזנה לסיפור</span>
                     </button>
                   )}
