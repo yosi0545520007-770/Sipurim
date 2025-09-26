@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿﻿import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { listMemorials, type Memorial } from '@/lib/memorials'
 import { HDate } from '@hebcal/core'
@@ -8,6 +8,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 type StorySuggestion = {
   id: string
   title: string
+}
+
+function sanitizeName(raw: any): string {
+  let s = String(raw ?? '').trim()
+  s = s.replace(/^\s*\[\s*"(.*)"\s*\]\s*$/s, '$1')
+  s = s.replace(/^\{"?(.*?)"?\}$/, '$1') // Remove {value} or {"value"}
+  s = s.replace(/^["'\[\]]+|["'\[\]]+$/g, '')
+  s = s.replace(/\s+/g, ' ').trim()
+  return s
 }
 
 export default function Header() {
@@ -63,14 +72,14 @@ export default function Header() {
   const memorialText = useMemo(() => {
     if (!memorial) return ''
     const parents: string[] = []
-    if (memorial.father_name) parents.push(memorial.father_name)
-    if (memorial.mother_name) parents.push(memorial.mother_name)
+    if (memorial.father_name) parents.push(sanitizeName(memorial.father_name))
+    if (memorial.mother_name) parents.push(sanitizeName(memorial.mother_name))
     if (parents.length > 0) {
-      const relation = memorial.gender === 'female' ? 'בת' : 'בן'
+      const relation = sanitizeName(memorial.gender) === 'female' ? 'בת' : 'בן'
       const joined = parents[0] + (parents.length > 1 ? ' ו' + parents[1] : '')
-      return `${memorial.honoree} ${relation} ${joined}`
+      return `${sanitizeName(memorial.honoree)} ${relation} ${joined}`
     }
-    return memorial.honoree
+    return sanitizeName(memorial.honoree)
   }, [memorial])
 
   const links = [
@@ -80,8 +89,7 @@ export default function Header() {
     { href: '/drive', label: 'סיפורים ברצף לנסיעה' },
     { href: '/series', label: 'סדרות' },
     { href: '/ilui', label: 'לעילוי נשמת' },
-    { href: '/contact', label: 'צור קשר' },
-    { href: '/faq', label: 'שאלות נפוצות' },
+    { href: '/contact', label: 'צור קשר' }
   ]
 
   function submitSearch() {
@@ -229,5 +237,3 @@ export default function Header() {
     </header>
   )
 }
-
-

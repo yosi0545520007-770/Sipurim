@@ -47,9 +47,35 @@ function fromHebrewTextToDate(s: string): Date | null {
 function sanitizeName(raw: any): string {
   let s = String(raw ?? '').trim()
   s = s.replace(/^\s*\[\s*"(.*)"\s*\]\s*$/s, '$1')
+  s = s.replace(/^\{"?(.*?)"?\}$/, '$1') // Remove {value} or {"value"}
   s = s.replace(/^["'\[\]]+|["'\[\]]+$/g, '')
   s = s.replace(/\s+/g, ' ').trim()
   return s
+}
+
+function guessGenderFromName(name: string): 'male' | 'female' | '' {
+  const cleanName = (name || '').trim()
+  if (!cleanName) return ''
+
+  // 1. Male exceptions ending in 'ה'
+  const maleExceptions = ['משה', 'שלמה', 'יהודה', 'אליה', 'אריה', 'ירמיה', 'נחמיה']
+  if (maleExceptions.includes(cleanName)) {
+    return 'male'
+  }
+
+  // 2. Common female names (including those not ending in ה/ת)
+  const femaleNames = ['מרים', 'יעל', 'אסתר', 'מיכל', 'רות', 'חן', 'שירן', 'לירן', 'סיון', 'כרמל', 'שקד', 'הדס', 'אביגיל']
+  if (femaleNames.includes(cleanName)) {
+    return 'female'
+  }
+
+  // 3. Common female endings
+  if (cleanName.endsWith('ה') || cleanName.endsWith('ת')) {
+    return 'female'
+  }
+
+  // 4. If no specific female pattern, default to male (user can override)
+  return 'male'
 }
 
 function getHebrewCalendar(date: Date) {
@@ -80,23 +106,29 @@ export function Component() {
   const [formHonoree, setFormHonoree] = useState('')
   const [formLastName, setFormLastName] = useState('')
   const [formFatherName, setFormFatherName] = useState('')
+  const [formMotherName, setFormMotherName] = useState('')
   const [formGender, setFormGender] = useState<'male' | 'female' | ''>('')
   const [formDate, setFormDate] = useState<Date | null>(null)
   const [storyDates, setStoryDates] = useState<Date[]>([])
+  // Inline editing state
+  const [inlineEditingId, setInlineEditingId] = useState<string | null>(null)
+  const [inlineFormData, setInlineFormData] = useState<{ honoree: string, father_name: string, mother_name: string }>({ honoree: '', father_name: '', mother_name: '' })
+
   const storyDateStyle = `
     .react-datepicker__day.has-story { background-color: #dcfce7; color: #166534; border-radius: 50%; font-weight: bold; }
   `
 
   function handleCsvExport() {
     try {
-      const header = ['honoree','last_name','father_name','gender','event_date']
+      const header = ['honoree','last_name','father_name','mother_name','gender','event_date']
       const rows = list.map((m) => {
         const honoree = sanitizeName(m.honoree)
         const last_name = sanitizeName((m as any).last_name || '')
         const father = sanitizeName(m.father_name || '')
+        const mother = sanitizeName(m.mother_name || '')
         const gender = m.gender || ''
         const event_date = m.event_date || ''
-        const safe = [honoree, last_name, father, gender, event_date].map((v) => {
+        const safe = [honoree, last_name, father, mother, gender, event_date].map((v) => {
           const s = String(v ?? '')
           return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
         })
@@ -174,6 +206,7 @@ export function Component() {
     setFormHonoree('')
     setFormLastName('')
     setFormFatherName('')
+    setFormMotherName('')
     setFormGender('')
     setFormDate(null)
     setIsModalOpen(true)
@@ -182,19 +215,29 @@ export function Component() {
   function startEdit(item: Memorial) {
     setEditingId(item.id)
     // Coerce potential array values to strings for safe editing
-    const honoree = sanitizeName(Array.isArray((item as any).honoree) ? String(((item as any).honoree[0] ?? '')) : String(item.honoree ?? ''))
-    const lastName = sanitizeName(Array.isArray((item as any).last_name) ? (((item as any).last_name[0] ?? '') as string) : ((item as any).last_name || ''))
-    const father = sanitizeName(Array.isArray((item as any).father_name) ? (((item as any).father_name[0] ?? '') as string) : (item.father_name || ''))
-    const gender = Array.isArray((item as any).gender)
-      ? (((item as any).gender[0] ?? null) as 'male' | 'female' | null)
-      : (item.gender ?? null)
+    const honoree = sanitizeName(item.honoree || '')
+    const lastName = sanitizeName((item as any).last_name || '')
+    const father = sanitizeName(item.father_name || '')
+    const mother = sanitizeName(item.mother_name || '')
+    const gender = item.gender || ''
     setFormFatherName(father)
     setFormHonoree(honoree)
+    setFormMotherName(mother)
     setFormLastName(lastName)
-    setFormGender((gender as any) || '')
+    setFormGender(gender as 'male' | 'female' | '')
     setFormDate(item.event_date ? new Date(item.event_date) : null)
     setIsModalOpen(true)
   }
+
+  function startInlineEdit(item: Memorial) {
+    setInlineEditingId(item.id)
+    setInlineFormData({
+      honoree: sanitizeName(item.honoree || ''),
+      father_name: sanitizeName(item.father_name || ''),
+      mother_name: sanitizeName(item.mother_name || ''),
+    })
+  }
+
 
   async function handleSave() {
     const honoree = sanitizeName(formHonoree)
@@ -207,8 +250,9 @@ export function Component() {
       const payload = {
         honoree,
         last_name: sanitizeName(formLastName) || null,
-        father_name: sanitizeName(formFatherName) || null,
-        gender: formGender || null,
+        father_name: [sanitizeName(formFatherName) || 'אברהם'],
+        mother_name: [sanitizeName(formMotherName) || 'שרה'],
+        gender: formGender ? [formGender] : null,
         event_date: formDate ? formDate.toISOString().slice(0, 10) : null,
       }
       const { error } = editingId
@@ -221,6 +265,30 @@ export function Component() {
       await loadMemorials()
     } catch (e: any) {
       setErr(e.message || 'שגיאה בשמירה')
+    }
+  }
+
+  async function handleInlineSave() {
+    if (!inlineEditingId) return
+    const honoree = sanitizeName(inlineFormData.honoree)
+    if (!honoree) {
+      setErr('שם הנזכר/ת לא יכול להיות ריק')
+      return
+    }
+    try {
+      setErr(null)
+      const payload = {
+        honoree,
+        father_name: [sanitizeName(inlineFormData.father_name) || 'אברהם'],
+        mother_name: [sanitizeName(inlineFormData.mother_name) || 'שרה'],
+      }
+      const { error } = await updateMemorial(inlineEditingId, payload)
+      if (error) throw new Error(error)
+      setMsg(`עודכן בהצלחה: ${honoree}`)
+      setInlineEditingId(null)
+      await loadMemorials()
+    } catch (e: any) {
+      setErr(e.message || 'שגיאה בעדכון')
     }
   }
 
@@ -252,6 +320,41 @@ export function Component() {
     }
   }
 
+  async function handleUpdateAllGenders() {
+    if (!confirm(`האם לעדכן אוטומטית את המין עבור כל הרשומות שבהן הוא חסר? הפעולה תתבצע רק על רשומות ללא מין מוגדר.`)) return
+
+    try {
+      setLoading(true)
+      setErr(null)
+
+      const { data: allMemorials, error: fetchError } = await listMemorials()
+      if (fetchError) throw fetchError
+
+      if (!allMemorials || allMemorials.length === 0) {
+        alert('אין רשומות לעדכון.')
+        return
+      }
+
+      const updates: Memorial[] = []
+      for (const memorial of allMemorials) {
+        if (!memorial.gender) {
+          const honoreeName = sanitizeName(memorial.honoree || '').split(' ')[0]
+          const guessedGender = guessGenderFromName(honoreeName)
+          if (guessedGender) {
+            updates.push({ ...memorial, gender: [guessedGender] as any })
+          }
+        }
+      }
+
+      if (updates.length === 0) { setMsg('לא נמצאו רשומות לעדכון. נראה שהכל כבר מעודכן.'); return }
+
+      const { error: updateError } = await supabase.from('memorials').upsert(updates)
+      if (updateError) throw updateError
+
+      setMsg(`עודכנו ${updates.length} רשומות בהצלחה.`); await loadMemorials()
+    } catch (e: any) { setErr(e.message || 'שגיאה בעדכון המין ההמוני') } finally { setLoading(false) }
+  }
+
   return (
     <section className="p-6 space-y-6" dir="rtl">
       <div className="flex items-center justify-between">
@@ -259,6 +362,7 @@ export function Component() {
         <div className="flex items-center gap-2">
           <button className="px-4 py-2 rounded-lg border" onClick={() => csvInputRef.current?.click()}>ייבוא CSV</button>
           <button className="px-4 py-2 rounded-lg border border-red-300 text-red-600" onClick={removeAll}>מחיקה גלובאלית</button>
+          <button className="px-4 py-2 rounded-lg border" onClick={handleUpdateAllGenders}>עדכון מין (אוטומטי)</button>
           <button className="px-4 py-2 rounded-lg border" onClick={handleCsvExport}>ייצוא CSV</button>
           <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvUpload} />
           <button className="px-4 py-2 rounded-lg bg-blue-600 text-white" onClick={startCreate}>הוספת רשומה</button>
@@ -277,28 +381,49 @@ export function Component() {
               <tr>
                 <th className="p-3 text-right">שם</th>
                 <th className="p-3 text-right">שם האב</th>
+                <th className="p-3 text-right">שם האם</th>
                 <th className="p-3 text-right">מין</th>
-                <th className="p-3 text-right">תאריך פטירה (עברי)</th>
+                <th className="p-3 text-right">תאריך פטירה</th>
                 <th className="p-3 text-right"></th>
               </tr>
             </thead>
             <tbody>
               {list.map((item) => (
-                <tr key={item.id} className="border-t">
-                  <td className="p-3 font-medium">{sanitizeName(item.honoree)}</td>
-                  <td className="p-3">{sanitizeName((item as any).last_name || '') || '—'}</td>
-                  <td className="p-3">{sanitizeName(item.father_name || '') || '—'}</td>
-                  <td className="p-3">{item.gender === 'male' ? 'גבר' : item.gender === 'female' ? 'אישה' : '—'}</td>
-                  <td className="p-3">{item.event_date ? toHebrewText(item.event_date) : '—'}</td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      <button className="px-3 py-1 rounded-lg border" onClick={() => startEdit(item)}>עריכה</button>
-                      <button className="px-3 py-1 rounded-lg border border-red-300 text-red-600" onClick={() => remove(item.id)}>מחיקה</button>
-                    </div>
-                  </td>
-                </tr>
+                inlineEditingId === item.id ? (
+                  // ----- Inline Edit Row -----
+                  <tr key={`${item.id}-edit`} className="border-t bg-blue-50">
+                    <td className="p-2"><input type="text" className="w-full p-1 border rounded" value={inlineFormData.honoree} onChange={(e) => setInlineFormData(f => ({ ...f, honoree: e.target.value }))} /></td>
+                    <td className="p-2"><input type="text" className="w-full p-1 border rounded" value={inlineFormData.father_name} onChange={(e) => setInlineFormData(f => ({ ...f, father_name: e.target.value }))} /></td>
+                    <td className="p-2"><input type="text" className="w-full p-1 border rounded" value={inlineFormData.mother_name} onChange={(e) => setInlineFormData(f => ({ ...f, mother_name: e.target.value }))} /></td>
+                    <td className="p-3 text-gray-500 text-xs" colSpan={2}>עריכה מהירה...</td>
+                    <td className="p-2">
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button className="px-3 py-1 rounded-lg bg-blue-600 text-white" onClick={handleInlineSave}>שמור</button>
+                        <button className="px-3 py-1 rounded-lg border" onClick={() => setInlineEditingId(null)}>ביטול</button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  // ----- Display Row -----
+                  <tr key={item.id} className="border-t">
+                    <td className="p-3 font-medium">{sanitizeName(item.honoree)}</td>
+                    <td className="p-3">{sanitizeName(item.father_name || '') || '—'}</td>
+                    <td className="p-3">{sanitizeName(item.mother_name || '') || '—'}</td>
+                    <td className="p-3">{item.gender === 'male' ? 'גבר' : item.gender === 'female' ? 'אישה' : '—'}</td>
+                    <td className="p-3">{item.event_date ? toHebrewText(item.event_date) : '—'}</td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button className="px-3 py-1 rounded-lg border" onClick={() => startInlineEdit(item)}>עריכה מהירה</button>
+                        <button className="px-3 py-1 rounded-lg border" onClick={() => startEdit(item)}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-more-horizontal"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                        </button>
+                        <button className="px-3 py-1 rounded-lg border border-red-300 text-red-600" onClick={() => remove(item.id)}>מחיקה</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
               ))}
-              {list.length === 0 && <tr><td className="p-3 text-gray-500" colSpan={5}>אין נתונים להצגה.</td></tr>}
+              {list.length === 0 && <tr><td className="p-3 text-gray-500" colSpan={6}>אין נתונים להצגה.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -311,11 +436,31 @@ export function Component() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-600">שם נזכר/ת *</label>
-                <input className="w-full mt-1 border rounded-lg p-2" value={formHonoree} onChange={(e) => setFormHonoree(e.target.value)} onBlur={(e)=> setFormHonoree(sanitizeName(e.target.value))} />
+                <input
+                  className="w-full mt-1 border rounded-lg p-2"
+                  value={formHonoree}
+                  onChange={(e) => setFormHonoree(e.target.value)}
+                  onBlur={(e) => {
+                    const finalName = sanitizeName(e.target.value)
+                    setFormHonoree(finalName)
+                    const guessedGender = guessGenderFromName(finalName.split(' ')[0]) // Guess from first name
+                    if (guessedGender) {
+                      setFormGender(guessedGender)
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">שם משפחה</label>
+                <input className="w-full mt-1 border rounded-lg p-2" value={formLastName} onChange={(e) => setFormLastName(e.target.value)} onBlur={(e)=> setFormLastName(sanitizeName(e.target.value))} />
               </div>
               <div>
                 <label className="text-sm text-gray-600">שם האב</label>
                 <input className="w-full mt-1 border rounded-lg p-2" value={formFatherName} onChange={(e) => setFormFatherName(e.target.value)} onBlur={(e)=> setFormFatherName(sanitizeName(e.target.value))} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">שם האם</label>
+                <input className="w-full mt-1 border rounded-lg p-2" value={formMotherName} onChange={(e) => setFormMotherName(e.target.value)} onBlur={(e)=> setFormMotherName(sanitizeName(e.target.value))} />
               </div>
               <div>
                 <label className="text-sm text-gray-600">מין</label>
@@ -358,10 +503,6 @@ export function Component() {
                 )}
               </div>
             </div>
-            <div className="mt-4">
-              <label className="text-sm text-gray-600">שם משפחה</label>
-              <input className="w-full mt-1 border rounded-lg p-2" value={formLastName} onChange={(e) => setFormLastName(e.target.value)} onBlur={(e)=> setFormLastName(sanitizeName(e.target.value))} />
-            </div>
             <div className="flex gap-2 mt-6 justify-end">
               <button className="bg-gray-200 px-4 py-2 rounded-lg" onClick={() => setIsModalOpen(false)}>ביטול</button>
               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={handleSave}>שמור</button>
@@ -395,12 +536,12 @@ async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
       out.push(cur)
       return out.map(s => s.trim())
     }
-    const headerFields = ['honoree','father_name','gender','event_date']
+    const headerFields = ['honoree','father_name','mother_name','gender','event_date']
     const first = parseLine(lines[0]).map(s=>s.toLowerCase())
     const hasHeader = headerFields.some(h => first.includes(h))
     const rows = (hasHeader ? lines.slice(1) : lines).map(parseLine)
     const payloads = rows.map(cols => {
-      const [c0,c1,c2,c3] = cols
+      const [c0,c1,c2,c3,c4] = cols
       const honoree = sanitizeName(c0)
       const father_name = sanitizeName(c1)
       const g = (c2 || '').toLowerCase()
@@ -414,7 +555,7 @@ async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
           if (maybe) event_date = maybe.toISOString().slice(0,10)
         }
       }
-      return { honoree, father_name: father_name || null, gender, event_date }
+      return { honoree, father_name: father_name ? [father_name] : null, gender: gender ? [gender] : null, event_date }
     }).filter(p => p.honoree)
     for (const p of payloads) {
       const { error } = await createMemorial(p as any)

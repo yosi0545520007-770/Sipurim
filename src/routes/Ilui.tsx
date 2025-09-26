@@ -13,6 +13,15 @@ function toHebrewText(dIn: string | Date | null | undefined): string {
   }
 }
 
+function sanitizeName(raw: any): string {
+  let s = String(raw ?? '').trim()
+  s = s.replace(/^\s*\[\s*"(.*)"\s*\]\s*$/s, '$1')
+  s = s.replace(/^\{"?(.*?)"?\}$/, '$1') // Remove {value} or {"value"}
+  s = s.replace(/^["'\[\]]+|["'\[\]]+$/g, '')
+  s = s.replace(/\s+/g, ' ').trim()
+  return s
+}
+
 function Candle() {
   return (
     <div className="w-12 h-12" title="נר זיכרון">
@@ -63,17 +72,28 @@ export function Component() {
 
       {!loading && (
         <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          {mem.map((m) => (
-            <li key={m.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center gap-3 shadow-sm">
-              <Candle />
-              <div className="flex-1">
-                <div className="font-semibold text-lg">{m.honoree}</div>
-                <div className="text-sm text-gray-500">
-                  {m.event_date ? `תאריך פטירה (עברי): ${toHebrewText(m.event_date)}` : ''}
+          {mem.map((m) => {
+            const parents: string[] = []
+            if (m.father_name) parents.push(sanitizeName(m.father_name))
+            if (m.mother_name) parents.push(sanitizeName(m.mother_name))
+
+            let parentsText = ''
+            if (parents.length > 0) {
+              const relation = sanitizeName(m.gender) === 'female' ? 'בת' : 'בן'
+              parentsText = `${relation} ${parents.join(' ו')}`
+            }
+
+            return (
+              <li key={m.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center gap-3 shadow-sm">
+                <Candle />
+                <div className="flex-1 space-y-0.5">
+                  <div className="font-semibold text-lg">{sanitizeName(m.honoree)}</div>
+                  {parentsText && <div className="text-sm text-gray-600">{parentsText}</div>}
+                  {m.event_date && <div className="text-sm text-gray-500">תאריך פטירה: {toHebrewText(m.event_date)}</div>}
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
           {!mem.length && <div className="text-gray-500 col-span-full">אין פריטים להצגה.</div>}
         </ul>
       )}
